@@ -1,0 +1,36 @@
+const express = require('express');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
+
+const app = express();
+
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    credentials: true,
+  })
+);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ success: true, message: 'API is healthy' });
+});
+
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+// app.use('/api/follow', followRoutes);    // Step 6
+// app.use('/api/posts', postRoutes);       // Step 8
+// app.use('/api/comments', commentRoutes); // Step 10
+// app.use('/api/stories', storyRoutes);    // Step 12
+// app.use('/api/feed', feedRoutes);        // Step 13
+
+app.use(notFound);
+app.use(errorHandler);
+
+module.exports = app;

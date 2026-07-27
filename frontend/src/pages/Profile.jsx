@@ -1,0 +1,127 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import api from "../services/api";
+import FormInput from "../components/FormInput";
+
+const Profile = () => {
+  const { user, refreshUser } = useAuth();
+  const [fullName, setFullName] = useState(user?.fullName || "");
+  const [bio, setBio] = useState(user?.bio || "");
+  const [isPrivate, setIsPrivate] = useState(user?.isPrivate || false);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [preview, setPreview] = useState(user?.avatar?.url || "");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const handleAvatarChange = (e) => 
+  {
+    const file = e.target.files[0];
+    if (!file) 
+      return;
+    setAvatarFile(file);
+    
+    setPreview(URL.createObjectURL(file)); // instant local preview
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage("");
+    setError("");
+    try {
+      await api.put("/users/profile", { fullName, bio, isPrivate });
+
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append("avatar", avatarFile);
+        await api.post("/users/avatar", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
+
+      await refreshUser(); // pulls the fresh user (including new avatar URL) into context
+      setMessage("Profile updated successfully.");
+      setAvatarFile(null);
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not update profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-md p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-bold">Edit profile</h1>
+        <Link to="/" className="text-sm text-brand hover:underline">
+          Back to home
+        </Link>
+      </div>
+
+      <form onSubmit={handleSave} className="rounded-xl border bg-white p-6 shadow-sm">
+        {message && (
+          <p className="mb-4 rounded bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
+        )}
+        {error && (
+          <p className="mb-4 rounded bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
+        )}
+
+        <div className="mb-6 flex items-center gap-4">
+          <img
+            src={preview || "https://placehold.co/80x80?text=?"}
+            alt="Avatar preview"
+            className="h-20 w-20 rounded-full object-cover"
+          />
+          <label className="cursor-pointer text-sm font-medium text-brand hover:underline">
+            Change photo
+            <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+          </label>
+        </div>
+
+        <p className="mb-4 text-sm text-gray-500">
+          Username: <span className="font-medium text-gray-700">@{user?.username}</span> (usernames
+          aren't editable here)
+        </p>
+
+        <FormInput
+          label="Full name"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+        />
+
+        <div className="mb-4">
+          <label className="mb-1 block text-sm font-medium text-gray-700">Bio</label>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            maxLength={150}
+            rows={3}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-light"
+          />
+          <p className="mt-1 text-right text-xs text-gray-400">{bio.length}/150</p>
+        </div>
+
+        <label className="mb-6 flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={isPrivate}
+            onChange={(e) => setIsPrivate(e.target.checked)}
+          />
+          Private account
+        </label>
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full rounded-lg bg-brand py-2 font-medium text-white transition hover:bg-brand-light disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save changes"}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default Profile;
