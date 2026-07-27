@@ -41,7 +41,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    // followers/following/followRequests are added in Step 6 (Follow System)
+    followers: [
+      { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: [] },
+    ],
+    following: [
+      { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: [] },
+    ],
   },
   { timestamps: true }
 );

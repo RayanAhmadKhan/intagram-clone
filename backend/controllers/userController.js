@@ -1,11 +1,13 @@
 const User = require('../models/User');
+const FollowRequest = require('../models/FollowRequest');
 const { uploadBufferToCloudinary, deleteFromCloudinary } = require('../utils/cloudinaryUpload');
 
 // @route   GET /api/users/:username
 // @access  Private (must be logged in to view any profile)
-// NOTE: full private-account gating (only approved followers can see content)
-// is completed in Step 6 once the Follow system exists. For now this returns
-// the profile's public fields to any authenticated user.
+// Full post-content gating (only approved followers can see a private
+// account's posts) is enforced in Step 8 once Posts exist. This endpoint
+// already gates the bio and exposes follow-state so the frontend can render
+// the correct Follow/Requested/Unfollow button.
 const getProfileByUsername = async (req, res, next) => {
   try {
     const { username } = req.params;
@@ -16,6 +18,15 @@ const getProfileByUsername = async (req, res, next) => {
     }
 
     const isOwnProfile = req.user._id.equals(user._id);
+    const isFollowing = user.followers.some((f) => f.equals(req.user._id));
+
+    let hasPendingRequest = false;
+    if (!isOwnProfile && !isFollowing) {
+      const pending = await FollowRequest.findOne({ requester: req.user._id, recipient: user._id });
+      hasPendingRequest = !!pending;
+    }
+
+    const canViewPrivateDetails = isOwnProfile || isFollowing || !user.isPrivate;
 
     return res.status(200).json({
       success: true,
@@ -25,9 +36,13 @@ const getProfileByUsername = async (req, res, next) => {
           username: user.username,
           fullName: user.fullName,
           avatar: user.avatar,
-          bio: user.bio,
+          bio: canViewPrivateDetails ? user.bio : '',
           isPrivate: user.isPrivate,
           isOwnProfile,
+          isFollowing,
+          hasPendingRequest,
+          followersCount: user.followers.length,
+          followingCount: user.following.length,
         },
       },
     });
