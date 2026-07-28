@@ -14,26 +14,22 @@ const serializeComment = (comment, viewerId, extra = {}) => ({
     fullName: comment.author.fullName,
     avatar: comment.author.avatar,
   },
-  likesCount: comment.likes.length,
-  isLikedByViewer: comment.likes.some((id) => id.equals(viewerId)),
+  likesCount: comment.likes ? comment.likes.length : 0,
+  isLikedByViewer: comment.likes ? comment.likes.some((id) => id.equals(viewerId)) : false,
   isOwnComment: comment.author._id.equals(viewerId),
   createdAt: comment.createdAt,
-  ...extra, // repliesCount on top-level comments
+  ...extra,
 });
 
-// Loads a comment plus its post's owner (isPrivate/followers), for the
-// privacy check shared by replies and comment-likes below.
 const loadCommentWithOwner = async (commentId) => {
-  const comment = await Comment.findById(commentId).populate({
+  return await Comment.findById(commentId).populate({
     path: 'post',
     select: 'owner',
     populate: { path: 'owner', select: 'isPrivate followers' },
   });
-  return comment;
 };
 
-// @route   POST /api/posts/:id/comments
-// @access  Private
+// POST /api/posts/:id/comments
 const createComment = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
@@ -70,10 +66,7 @@ const createComment = async (req, res, next) => {
   }
 };
 
-// @route   GET /api/posts/:id/comments
-// @access  Private
-// Top-level comments only, each with a repliesCount — the replies themselves
-// are fetched on demand via GET /api/comments/:id/replies.
+// GET /api/posts/:id/comments
 const getPostComments = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
@@ -106,8 +99,7 @@ const getPostComments = async (req, res, next) => {
   }
 };
 
-// @route   PUT /api/comments/:id
-// @access  Private (author only)
+// PUT /api/comments/:id
 const updateComment = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -138,10 +130,7 @@ const updateComment = async (req, res, next) => {
   }
 };
 
-// @route   DELETE /api/comments/:id
-// @access  Private (author only)
-// Deletes the comment AND any replies under it, and cleans up every one of
-// those ids (parent + replies) from Post.comments in a single $pull.
+// DELETE /api/comments/:id (WITH CASCADE DELETION FIX)
 const deleteComment = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -157,23 +146,29 @@ const deleteComment = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'You can only delete your own comments' });
     }
 
+    // Find all reply IDs under this comment
     const replies = await Comment.find({ parentComment: comment._id }, '_id');
     const idsToRemove = [comment._id, ...replies.map((r) => r._id)];
 
+    // 1. Delete parent comment AND all its replies
     await Comment.deleteMany({ _id: { $in: idsToRemove } });
-    await Post.findByIdAndUpdate(comment.post, { $pull: { comments: { $in: idsToRemove } } });
 
-    return res.status(200).json({ success: true, message: 'Comment deleted' });
+    // 2. Remove ALL deleted IDs (parent + replies) from Post.comments array
+    await Post.findByIdAndUpdate(comment.post, {
+      $pull: { comments: { $in: idsToRemove } },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Comment deleted',
+      data: { deletedCount: idsToRemove.length },
+    });
   } catch (error) {
     next(error);
   }
 };
 
-// @route   POST /api/comments/:id/replies
-// @access  Private
-// A reply is just a Comment with parentComment set — same collection, same
-// serialization, so editing/deleting a reply reuses updateComment/deleteComment
-// above unchanged.
+// POST /api/comments/:id/replies
 const createReply = async (req, res, next) => {
   try {
     const { id: parentId } = req.params;
@@ -210,8 +205,7 @@ const createReply = async (req, res, next) => {
   }
 };
 
-// @route   GET /api/comments/:id/replies
-// @access  Private
+// GET /api/comments/:id/replies
 const getCommentReplies = async (req, res, next) => {
   try {
     const { id: parentId } = req.params;
@@ -240,8 +234,7 @@ const getCommentReplies = async (req, res, next) => {
   }
 };
 
-// @route   POST /api/comments/:id/like
-// @access  Private
+// POST /api/comments/:id/like
 const likeComment = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -275,8 +268,7 @@ const likeComment = async (req, res, next) => {
   }
 };
 
-// @route   DELETE /api/comments/:id/like
-// @access  Private
+// DELETE /api/comments/:id/like
 const unlikeComment = async (req, res, next) => {
   try {
     const { id } = req.params;
