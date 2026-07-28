@@ -1,23 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-//import StoryBar from "../components/StoryBar";
+import StoryBar from "../components/StoryBar";
+import Feed from "../components/Feed";
 
 const Home = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [lookupUsername, setLookupUsername] = useState("");
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (err) {
-      console.error("Logout failed:", err);
-    } finally {
-      // Always redirect to login page even if the backend request fails
-      navigate("/login");
-    }
-  };
 
   const goToProfile = (e) => {
     e.preventDefault();
@@ -35,15 +25,15 @@ const Home = () => {
           <Link to="/profile" className="text-sm font-medium text-brand hover:underline">
             Edit profile
           </Link>
-          <button onClick={handleLogout} className="text-sm text-red-500 hover:underline">
+          <button onClick={logout} className="text-sm text-red-500 hover:underline">
             Log out
           </button>
         </div>
       </div>
 
-      {/* <div className="mt-4">
+      <div className="mt-4">
         <StoryBar />
-      </div> */}
+      </div>
 
       <div className="mt-4 flex gap-3">
         <Link
@@ -77,9 +67,9 @@ const Home = () => {
         </button>
       </form>
 
-      <p className="mt-4 text-sm text-gray-500">
-        Full feed comes in Step 13 — for now, check posts via a profile page.
-      </p>
+      <div className="mt-6">
+        <Feed />
+      </div>
     </div>
   );
 };

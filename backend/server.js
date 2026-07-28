@@ -5,10 +5,12 @@ require('dotenv').config();
 
 const app = require('./app');
 const connectToDB = require('./config/db');
+const { startStoryExpiryJob } = require('./jobs/storyExpiryJob');
 
 const PORT = process.env.PORT || 5000;
 
 connectToDB();
+startStoryExpiryJob();
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

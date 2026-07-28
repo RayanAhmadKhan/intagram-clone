@@ -237,6 +237,7 @@ const unlikePost = async (req, res, next) => {
 };
 
 module.exports = {
+  serializePost,
   createPost,
   getPostById,
   updatePost,

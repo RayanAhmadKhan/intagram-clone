@@ -8,7 +8,8 @@ const followRoutes = require('./routes/followRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
 const postRoutes = require('./routes/postRoutes');
 const commentRoutes = require('./routes/commentRoutes');
-//const storyRoutes = require('./routes/storyRoutes');
+const storyRoutes = require('./routes/storyRoutes');
+const feedRoutes = require('./routes/feedRoutes');
 const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 
 const app = express();
@@ -33,8 +34,8 @@ app.use('/api/follow', followRoutes);
 app.use('/api/media', mediaRoutes); // test-upload route — safe to delete now that Posts is live
 app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
-//app.use('/api/stories', storyRoutes);
-// app.use('/api/feed', feedRoutes);        // Step 13
+app.use('/api/stories', storyRoutes);
+app.use('/api/feed', feedRoutes);        
 
 app.use(notFound);
 app.use(errorHandler);
