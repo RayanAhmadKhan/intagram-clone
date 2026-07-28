@@ -1,16 +1,31 @@
 const express = require('express');
-const { getProfileByUsername, updateProfile, updateAvatar } = require('../controllers/userController');
+const {
+  createPost,
+  getPostById,
+  updatePost,
+  deletePost,
+  getUserPosts,
+  likePost,
+  unlikePost,
+} = require('../controllers/postController');
+const { createComment, getPostComments } = require('../controllers/commentController');
 const { authenticateUser } = require('../middlewares/authMiddleware');
-const { validate, updateProfileRules } = require('../validators/userValidator');
-const { avatarUpload } = require('../middlewares/uploadMiddleware');
+const { validate, createPostRules, updatePostRules } = require('../validators/postValidator');
+const { validate: validateComment, commentRules } = require('../validators/commentValidator');
+const { mediaUpload } = require('../middlewares/uploadMiddleware');
 
 const router = express.Router();
 
-// /profile and /avatar use different HTTP methods (PUT/POST) than the
-// GET /:username route below, so there's no path collision — but keep any
-// future GET-based static routes (e.g. GET /search) above GET /:username.
-router.put('/profile', authenticateUser, updateProfileRules, validate, updateProfile);
-router.post('/avatar', authenticateUser, avatarUpload.single('avatar'), updateAvatar);
-router.get('/:username', authenticateUser, getProfileByUsername);
+// Static route registered before the /:id param route to avoid collisions
+router.get('/user/:username', authenticateUser, getUserPosts);
+
+router.post('/', authenticateUser, mediaUpload.array('media', 10), createPostRules, validate, createPost);
+router.get('/:id', authenticateUser, getPostById);
+router.put('/:id', authenticateUser, updatePostRules, validate, updatePost);
+router.delete('/:id', authenticateUser, deletePost);
+router.post('/:id/like', authenticateUser, likePost);
+router.delete('/:id/like', authenticateUser, unlikePost);
+router.post('/:id/comments', authenticateUser, commentRules, validateComment, createComment);
+router.get('/:id/comments', authenticateUser, getPostComments);
 
 module.exports = router;

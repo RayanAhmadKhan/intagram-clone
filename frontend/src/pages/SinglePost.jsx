@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Heart, ChevronLeft, ChevronRight, MoreHorizontal, Trash2, Edit2 } from 'lucide-react';
 import { getPostByIdApi, likePostApi, unlikePostApi, updatePostApi, deletePostApi } from '../services/postService';
+import CommentSection from '../components/CommentSection';
 
 export default function SinglePost() {
   const { id } = useParams();
@@ -17,6 +18,11 @@ export default function SinglePost() {
   const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
+    if (!id || id === 'undefined') {
+      setError('Invalid Post ID');
+      setLoading(false);
+      return;
+    }
     fetchPost();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -193,6 +199,9 @@ export default function SinglePost() {
             {post.caption}
           </p>
         )}
+
+        {/* Comment Section Component */}
+        <CommentSection postId={post._id || id} />
       </div>
     </div>
   );

@@ -1,0 +1,37 @@
+const mongoose = require('mongoose');
+
+const commentSchema = new mongoose.Schema(
+  {
+    post: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Post',
+      required: true,
+    },
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    text: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 500,
+    },
+    // Reserved for Step 11 — replies (a reply is a Comment whose parentComment
+    // points at the comment it's replying to) and comment likes.
+    parentComment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Comment',
+      default: null,
+    },
+    likes: [
+      { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: [] },
+    ],
+  },
+  { timestamps: true }
+);
+
+commentSchema.index({ post: 1, createdAt: 1 });
+
+module.exports = mongoose.model('Comment', commentSchema);
