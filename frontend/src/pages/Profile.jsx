@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
+import { getUserPostsApi } from "../services/postService";
 import FormInput from "../components/FormInput";
 
 const Profile = () => {
@@ -15,14 +16,26 @@ const Profile = () => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const handleAvatarChange = (e) => 
-  {
+  const [posts, setPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+
+  useEffect(() => {
+    if (user?.username) {
+      getUserPostsApi(user.username)
+        .then((res) => {
+          const fetchedPosts = res.data?.posts || res.posts || res.data || [];
+          setPosts(fetchedPosts);
+        })
+        .catch((err) => console.error("Could not fetch user posts:", err))
+        .finally(() => setLoadingPosts(false));
+    }
+  }, [user]);
+
+  const handleAvatarChange = (e) => {
     const file = e.target.files[0];
-    if (!file) 
-      return;
+    if (!file) return;
     setAvatarFile(file);
-    
-    setPreview(URL.createObjectURL(file)); // instant local preview
+    setPreview(URL.createObjectURL(file));
   };
 
   const handleSave = async (e) => {
@@ -41,7 +54,7 @@ const Profile = () => {
         });
       }
 
-      await refreshUser(); // pulls the fresh user (including new avatar URL) into context
+      await refreshUser();
       setMessage("Profile updated successfully.");
       setAvatarFile(null);
     } catch (err) {
@@ -52,7 +65,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="mx-auto max-w-md p-6">
+    <div className="mx-auto max-w-xl p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-bold">Edit profile</h1>
         <Link to="/" className="text-sm text-brand hover:underline">
@@ -60,7 +73,7 @@ const Profile = () => {
         </Link>
       </div>
 
-      <form onSubmit={handleSave} className="rounded-xl border bg-white p-6 shadow-sm">
+      <form onSubmit={handleSave} className="rounded-xl border bg-white p-6 shadow-sm mb-8">
         {message && (
           <p className="mb-4 rounded bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
         )}
@@ -81,8 +94,7 @@ const Profile = () => {
         </div>
 
         <p className="mb-4 text-sm text-gray-500">
-          Username: <span className="font-medium text-gray-700">@{user?.username}</span> (usernames
-          aren't editable here)
+          Username: <span className="font-medium text-gray-700">@{user?.username}</span>
         </p>
 
         <FormInput
@@ -120,6 +132,39 @@ const Profile = () => {
           {saving ? "Saving..." : "Save changes"}
         </button>
       </form>
+
+      {/* User's Posts Section */}
+      <div className="border-t pt-6">
+        <h2 className="text-lg font-bold mb-4">Your Posts</h2>
+        {loadingPosts ? (
+          <p className="text-center text-sm text-gray-500">Loading posts...</p>
+        ) : posts.length === 0 ? (
+          <p className="text-center text-sm text-gray-500">You haven't posted anything yet.</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {posts.map((post) => {
+              const mediaUrl = post.media?.[0]?.url || post.mediaUrl;
+              return (
+                <Link
+                  key={post._id}
+                  to={`/posts/${post._id}`}
+                  className="relative aspect-square bg-gray-100 overflow-hidden group rounded"
+                >
+                  {mediaUrl ? (
+                    <img
+                      src={mediaUrl}
+                      alt={post.caption || "Post"}
+                      className="w-full h-full object-cover group-hover:scale-105 transition"
+                    />
+                  ) : (
+                    <div className="p-2 text-xs text-gray-600 truncate">{post.caption}</div>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

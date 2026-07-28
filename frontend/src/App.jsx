@@ -1,51 +1,24 @@
-import { Routes, Route } from "react-router-dom";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Home from "./pages/Home";
-import Profile from "./pages/Profile";
-import UserProfile from "./pages/UserProfile";
-import FollowRequests from "./pages/FollowRequests";
-import ProtectedRoute from "./components/ProtectedRoute";
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import UserProfile from './pages/UserProfile';
+import CreatePost from './pages/CreatePost';
+import SinglePost from './pages/SinglePost';
+import Profile from './pages/Profile';
 
-function App() {
+export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/home" element={<Home />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/profile" element={<Profile />} />
       <Route path="/register" element={<Register />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/requests"
-        element={
-          <ProtectedRoute>
-            <FollowRequests />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/u/:username"
-        element={
-          <ProtectedRoute>
-            <UserProfile />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/create-post" element={<CreatePost />} />
+      <Route path="/posts/:id" element={<SinglePost />} />
+      <Route path="/u/:username" element={<UserProfile />} />
     </Routes>
   );
 }
-
-export default App;

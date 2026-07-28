@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+//import StoryBar from "../components/StoryBar";
 
 const Home = () => {
   const { user, logout } = useAuth();
@@ -29,6 +30,25 @@ const Home = () => {
         </div>
       </div>
 
+      {/* <div className="mt-4">
+        <StoryBar />
+      </div> */}
+
+      <div className="mt-4 flex gap-3">
+        <Link
+          to="/create-post"
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-light"
+        >
+          + Create post
+        </Link>
+        <Link
+          to={`/u/${user?.username}`}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          My profile
+        </Link>
+      </div>
+
       {/* Stand-in for user search (that's a bonus feature) — lets you jump to
           any username's profile to test the follow system with a second account */}
       <form onSubmit={goToProfile} className="mt-6 flex gap-2">
@@ -47,7 +67,7 @@ const Home = () => {
       </form>
 
       <p className="mt-4 text-sm text-gray-500">
-        Feed will render here once Posts (Step 8) and Feed (Step 13) are built.
+        Full feed comes in Step 13 — for now, check posts via a profile page.
       </p>
     </div>
   );
