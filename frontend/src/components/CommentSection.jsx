@@ -17,13 +17,15 @@ export default function CommentSection({ postId }) {
     if (postId) {
       fetchComments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
 
   const fetchComments = async () => {
     try {
       const res = await api.get(`/posts/${postId}/comments`);
-      const data = res.data?.comments || res.data?.data || res.data || [];
-      setComments(Array.isArray(data) ? data : []);
+      // Matches Backend: res.data.data.comments
+      const fetchedComments = res.data?.data?.comments || [];
+      setComments(Array.isArray(fetchedComments) ? fetchedComments : []);
     } catch (err) {
       console.error('Failed to load comments:', err);
     } finally {
@@ -38,8 +40,16 @@ export default function CommentSection({ postId }) {
     setSubmitting(true);
     try {
       const res = await api.post(`/posts/${postId}/comments`, { text: newComment });
-      const created = res.data?.comment || res.data?.data || res.data;
-      setComments((prev) => [created, ...prev]);
+      
+      // Matches Backend: res.data.data.comment (serialized object with `id`)
+      const createdComment = res.data?.data?.comment;
+
+      if (createdComment) {
+        setComments((prev) => [createdComment, ...prev]);
+      } else {
+        fetchComments(); // Fallback re-fetch if response format varies
+      }
+
       setNewComment('');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to post comment');
@@ -52,12 +62,14 @@ export default function CommentSection({ postId }) {
     try {
       setComments((prev) =>
         prev.map((c) => {
-          if (c._id === commentId) {
-            const likesArr = c.likes || [];
-            const updatedLikes = isLiked
-              ? likesArr.filter((id) => id !== user?._id)
-              : [...likesArr, user?._id];
-            return { ...c, likes: updatedLikes, isLikedByViewer: !isLiked };
+          const cId = c.id || c._id;
+          if (cId === commentId) {
+            const currentCount = c.likesCount || 0;
+            return {
+              ...c,
+              likesCount: isLiked ? Math.max(0, currentCount - 1) : currentCount + 1,
+              isLikedByViewer: !isLiked,
+            };
           }
           return c;
         })
@@ -74,7 +86,8 @@ export default function CommentSection({ postId }) {
   };
 
   const handleStartEdit = (comment) => {
-    setEditingCommentId(comment._id);
+    const commentId = comment.id || comment._id;
+    setEditingCommentId(commentId);
     setEditText(comment.text);
   };
 
@@ -82,10 +95,16 @@ export default function CommentSection({ postId }) {
     if (!editText.trim()) return;
     try {
       const res = await api.put(`/comments/${commentId}`, { text: editText });
-      const updated = res.data?.comment || res.data?.data || res.data;
+      const updated = res.data?.data?.comment;
 
       setComments((prev) =>
-        prev.map((c) => (c._id === commentId ? { ...c, text: updated.text || editText } : c))
+        prev.map((c) => {
+          const cId = c.id || c._id;
+          if (cId === commentId) {
+            return { ...c, text: updated?.text || editText };
+          }
+          return c;
+        })
       );
       setEditingCommentId(null);
     } catch (err) {
@@ -97,7 +116,7 @@ export default function CommentSection({ postId }) {
     if (!window.confirm('Delete this comment?')) return;
     try {
       await api.delete(`/comments/${commentId}`);
-      setComments((prev) => prev.filter((c) => c._id !== commentId));
+      setComments((prev) => prev.filter((c) => (c.id || c._id) !== commentId));
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete comment');
     }
@@ -134,22 +153,24 @@ export default function CommentSection({ postId }) {
       ) : (
         <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
           {comments.map((comment) => {
-            const author = comment.author || comment.user || {};
-            const isOwner = user?._id === author._id || user?.username === author.username;
-            const isLiked = comment.isLikedByViewer || comment.likes?.includes(user?._id);
+            // Handles both backend serialized `id` and raw MongoDB `_id`
+            const commentId = comment.id || comment._id;
+            const author = comment.author || {};
+            const isOwner = comment.isOwnComment || user?._id === author.id || user?._id === author._id;
+            const isLiked = comment.isLikedByViewer;
 
             return (
-              <div key={comment._id} className="flex gap-3 items-start text-xs group">
+              <div key={commentId} className="flex gap-3 items-start text-xs group">
                 <Link to={`/u/${author.username}`}>
                   <img
                     src={author.avatar?.url || author.avatar || 'https://placehold.co/32x32?text=?'}
-                    alt={author.username}
+                    alt={author.username || 'User'}
                     className="w-7 h-7 rounded-full object-cover border"
                   />
                 </Link>
 
                 <div className="flex-1">
-                  {editingCommentId === comment._id ? (
+                  {editingCommentId === commentId ? (
                     <div className="flex gap-2 items-center mt-1">
                       <input
                         type="text"
@@ -158,7 +179,7 @@ export default function CommentSection({ postId }) {
                         className="border px-2 py-1 rounded text-xs flex-1"
                       />
                       <button
-                        onClick={() => handleSaveEdit(comment._id)}
+                        onClick={() => handleSaveEdit(commentId)}
                         className="text-blue-600 font-semibold"
                       >
                         Save
@@ -174,12 +195,12 @@ export default function CommentSection({ postId }) {
                     <div>
                       <p>
                         <Link to={`/u/${author.username}`} className="font-semibold mr-1.5">
-                          @{author.username}
+                          @{author.username || 'user'}
                         </Link>
                         {comment.text}
                       </p>
                       <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-400">
-                        <span>{comment.likes?.length || 0} likes</span>
+                        <span>{comment.likesCount ?? comment.likes?.length ?? 0} likes</span>
                         {isOwner && (
                           <>
                             <button
@@ -189,7 +210,7 @@ export default function CommentSection({ postId }) {
                               <Edit2 className="w-2.5 h-2.5" /> Edit
                             </button>
                             <button
-                              onClick={() => handleDelete(comment._id)}
+                              onClick={() => handleDelete(commentId)}
                               className="hover:underline text-red-500 flex items-center gap-0.5"
                             >
                               <Trash2 className="w-2.5 h-2.5" /> Delete
@@ -202,7 +223,7 @@ export default function CommentSection({ postId }) {
                 </div>
 
                 <button
-                  onClick={() => handleLikeToggle(comment._id, isLiked)}
+                  onClick={() => handleLikeToggle(commentId, isLiked)}
                   className="mt-1"
                 >
                   <Heart
