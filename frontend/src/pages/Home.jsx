@@ -8,6 +8,17 @@ const Home = () => {
   const navigate = useNavigate();
   const [lookupUsername, setLookupUsername] = useState("");
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error("Logout failed:", err);
+    } finally {
+      // Always redirect to login page even if the backend request fails
+      navigate("/login");
+    }
+  };
+
   const goToProfile = (e) => {
     e.preventDefault();
     if (lookupUsername.trim()) navigate(`/u/${lookupUsername.trim()}`);
@@ -24,7 +35,7 @@ const Home = () => {
           <Link to="/profile" className="text-sm font-medium text-brand hover:underline">
             Edit profile
           </Link>
-          <button onClick={logout} className="text-sm text-red-500 hover:underline">
+          <button onClick={handleLogout} className="text-sm text-red-500 hover:underline">
             Log out
           </button>
         </div>
