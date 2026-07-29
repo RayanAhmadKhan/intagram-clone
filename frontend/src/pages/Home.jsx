@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import StoryBar from "../components/StoryBar";
 import Feed from "../components/Feed";
+import NotificationBell from "../components/NotificationBell";
+
 
 const Home = () => {
   const { user, logout } = useAuth();
@@ -30,6 +32,8 @@ const Home = () => {
           </button>
         </div>
       </div>
+      
+        <NotificationBell />
 
       <div className="mt-4">
         <StoryBar />

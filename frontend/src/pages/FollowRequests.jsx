@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
+import { useSocket } from "../contexts/SocketContext";
 
 const FollowRequests = () => {
+  const socket = useSocket();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actingOn, setActingOn] = useState(null);
@@ -20,6 +22,24 @@ const FollowRequests = () => {
   useEffect(() => {
     load();
   }, []);
+
+  // Live: a new incoming request appears without needing a refresh.
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewRequest = (payload) => {
+      setRequests((prev) => {
+        if (prev.some((r) => r.id === payload.id)) return prev; // avoid dupes
+        return [
+          { id: payload.id, requester: payload.requester, createdAt: payload.createdAt },
+          ...prev,
+        ];
+      });
+    };
+
+    socket.on("follow:request", handleNewRequest);
+    return () => socket.off("follow:request", handleNewRequest);
+  }, [socket]);
 
   const respond = async (requestId, action) => {
     setActingOn(requestId);

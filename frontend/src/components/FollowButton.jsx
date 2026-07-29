@@ -1,10 +1,43 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import api from "../services/api";
+import { useSocket } from "../contexts/SocketContext";
 
 // status: "following" | "requested" | "not_following"
 const FollowButton = ({ userId, initialStatus, onChange }) => {
+  const socket = useSocket();
   const [status, setStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(false);
+
+  // Keep in sync if the parent re-fetches and passes a new initialStatus
+  useEffect(() => {
+    setStatus(initialStatus);
+  }, [initialStatus]);
+
+  // Live: if the profile currently on screen accepts/rejects our pending
+  // request from another tab/device, this button updates without a refresh.
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleAccepted = (payload) => {
+      if (payload.by?.id === userId) {
+        setStatus("following");
+        onChange?.("following");
+      }
+    };
+    const handleRejected = (payload) => {
+      if (payload.by?.id === userId) {
+        setStatus("not_following");
+        onChange?.("not_following");
+      }
+    };
+
+    socket.on("follow:accepted", handleAccepted);
+    socket.on("follow:rejected", handleRejected);
+    return () => {
+      socket.off("follow:accepted", handleAccepted);
+      socket.off("follow:rejected", handleRejected);
+    };
+  }, [socket, userId, onChange]);
 
   const handleClick = async () => {
     setLoading(true);
