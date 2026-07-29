@@ -1,132 +1,150 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Trash2, X } from "lucide-react";
 import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
-const STORY_DURATION_MS = 5000;
-
-const StoryViewer = () => {
+export default function StoryViewPage() {
   const { username } = useParams();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [stories, setStories] = useState([]);
-  const [index, setIndex] = useState(0);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
-  const timerRef = useRef(null);
 
-  const load = async () => {
+  const [stories, setStories] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    fetchStories();
+  }, [username]);
+
+  const fetchStories = async () => {
     setLoading(true);
-    setError("");
     try {
-      const { data } = await api.get(`/stories/user/${username}`);
-      if (data.data.stories.length === 0) {
-        setError("No active stories right now — they may have expired.");
-      }
-      setStories(data.data.stories);
+      const res = await api.get(`/stories/user/${username}`);
+      setStories(res.data?.data?.stories || []);
     } catch (err) {
-      setError(err.response?.data?.message || "Could not load stories.");
+      console.error("Failed to fetch stories:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [username]);
+  const handleDeleteStory = async (storyId) => {
+    if (!window.confirm("Are you sure you want to delete this story?")) return;
 
-  useEffect(() => {
-    if (stories.length === 0) return;
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      if (index < stories.length - 1) {
-        setIndex((i) => i + 1);
-      } else {
+    setDeleting(true);
+    try {
+      await api.delete(`/stories/${storyId}`);
+      
+      const updatedStories = stories.filter((s) => s.id !== storyId);
+      if (updatedStories.length === 0) {
         navigate("/");
+      } else {
+        setStories(updatedStories);
+        setCurrentIndex((prev) => Math.max(0, prev - 1));
       }
-    }, STORY_DURATION_MS);
-    return () => clearTimeout(timerRef.current);
-  }, [index, stories, navigate]);
-
-  const goPrev = () => setIndex((i) => Math.max(0, i - 1));
-  const goNext = () => (index < stories.length - 1 ? setIndex((i) => i + 1) : navigate("/"));
-
-  const handleDelete = async () => {
-    const story = stories[index];
-    if (!window.confirm("Delete this story now?")) return;
-    await api.delete(`/stories/${story.id}`);
-    const remaining = stories.filter((s) => s.id !== story.id);
-    if (remaining.length === 0) {
-      navigate("/");
-    } else {
-      setStories(remaining);
-      setIndex((i) => Math.min(i, remaining.length - 1));
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete story");
+    } finally {
+      setDeleting(false);
     }
   };
 
   if (loading) {
-    return <div className="flex h-screen items-center justify-center text-white">Loading...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center bg-black text-white">
+        Loading story...
+      </div>
+    );
   }
 
-  if (error || stories.length === 0) {
+  if (stories.length === 0) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-black text-white">
-        <p>{error}</p>
-        <button onClick={() => navigate("/")} className="text-sm underline">
-          Back to home
+      <div className="flex h-screen flex-col items-center justify-center bg-black text-white gap-4">
+        <p>No active stories for @{username}</p>
+        <button
+          onClick={() => navigate("/")}
+          className="text-sm bg-white text-black px-4 py-2 rounded-lg font-medium"
+        >
+          Go Back
         </button>
       </div>
     );
   }
 
-  const story = stories[index];
+  const currentStory = stories[currentIndex];
+
+  // Robust check for ownership
+  const isMyStory =
+    currentStory?.isOwnStory ||
+    currentStory?.owner?.id === user?._id ||
+    currentStory?.owner?.id === user?.id ||
+    user?.username?.toLowerCase() === username?.toLowerCase();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
-      <div className="relative h-full w-full max-w-md">
-        <div className="absolute inset-x-2 top-2 z-10 flex gap-1">
-          {stories.map((_, i) => (
-            <div key={i} className="h-1 flex-1 overflow-hidden rounded bg-white/30">
-              <div
-                className={`h-full bg-white ${i < index ? "w-full" : i === index ? "animate-story-progress" : "w-0"}`}
-                style={i === index ? { animationDuration: `${STORY_DURATION_MS}ms` } : undefined}
-              />
-            </div>
-          ))}
-        </div>
-
-        <div className="absolute left-2 top-6 z-10 flex items-center gap-2 text-white">
+    <div className="relative flex h-screen w-screen items-center justify-center bg-black">
+      {/* Top Header Controls */}
+      <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between text-white max-w-md mx-auto">
+        <div className="flex items-center gap-2">
           <img
-            src={story.owner.avatar?.url || "https://placehold.co/28x28?text=?"}
-            alt={story.owner.username}
-            className="h-7 w-7 rounded-full border border-white object-cover"
+            src={currentStory.owner?.avatar?.url || currentStory.owner?.avatar || "https://placehold.co/32x32"}
+            className="h-8 w-8 rounded-full border border-white/40 object-cover"
+            alt={currentStory.owner?.username}
           />
-          <span className="text-sm font-medium">@{story.owner.username}</span>
+          <span className="font-semibold text-sm">@{currentStory.owner?.username}</span>
         </div>
 
-        <button onClick={() => navigate("/")} className="absolute right-2 top-6 z-10 text-xl text-white">
-          ✕
-        </button>
+        <div className="flex items-center gap-3">
+          {/* DELETE BUTTON: Rendered ONLY if the viewer owns this story */}
+          {isMyStory && (
+            <button
+              onClick={() => handleDeleteStory(currentStory.id)}
+              disabled={deleting}
+              className="p-1.5 rounded-full hover:bg-white/20 text-red-400 hover:text-red-500 transition disabled:opacity-50"
+              title="Delete Story"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          )}
 
-        {story.isOwnStory && (
+          {/* Close viewer */}
           <button
-            onClick={handleDelete}
-            className="absolute bottom-4 right-2 z-10 rounded bg-black/50 px-3 py-1 text-xs text-white"
+            onClick={() => navigate("/")}
+            className="p-1.5 rounded-full hover:bg-white/20 text-white transition"
           >
-            Delete
+            <X className="w-6 h-6" />
           </button>
-        )}
+        </div>
+      </div>
 
-        <button onClick={goPrev} className="absolute left-0 top-0 z-10 h-full w-1/3" aria-label="Previous" />
-        <button onClick={goNext} className="absolute right-0 top-0 z-10 h-full w-1/3" aria-label="Next" />
-
-        {story.media.resourceType === "video" ? (
-          <video src={story.media.url} autoPlay muted className="h-full w-full object-contain" />
+      {/* Story Content */}
+      <div className="max-h-[85vh] max-w-[400px] w-full flex justify-center items-center">
+        {currentStory.media?.resourceType === "video" ? (
+          <video src={currentStory.media.url} autoPlay className="max-h-[80vh] object-contain rounded-lg" />
         ) : (
-          <img src={story.media.url} alt="" className="h-full w-full object-contain" />
+          <img src={currentStory.media.url} alt="Story" className="max-h-[80vh] object-contain rounded-lg" />
         )}
       </div>
+
+      {/* Prev / Next controls */}
+      {currentIndex > 0 && (
+        <button
+          onClick={() => setCurrentIndex((prev) => prev - 1)}
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 p-3 rounded-full text-xl"
+        >
+          ‹
+        </button>
+      )}
+
+      {currentIndex < stories.length - 1 && (
+        <button
+          onClick={() => setCurrentIndex((prev) => prev + 1)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 p-3 rounded-full text-xl"
+        >
+          ›
+        </button>
+      )}
     </div>
   );
-};
-
-export default StoryViewer;
+}

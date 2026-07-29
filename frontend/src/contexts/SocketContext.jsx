@@ -4,37 +4,39 @@ import { useAuth } from './AuthContext';
 
 const SocketContext = createContext(null);
 
+const SOCKET_URL = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
+  : 'http://localhost:5000';
+
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const { user } = useAuth() || {};
 
   useEffect(() => {
-    // Get user ID from AuthContext user object
-    const userId = user?._id || user?.id;
-
-    if (!userId) {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-      }
+    if (!user) {
+      setSocket((prev) => {
+        prev?.disconnect();
+        return null;
+      });
       return;
     }
 
-    // Pass the userId directly in the socket auth object
-    const newSocket = io('http://localhost:5000', {
+    // withCredentials sends the real httpOnly auth cookie on the handshake —
+    // that's the only thing the server trusts now (see socketAuth.js).
+    // No userId is passed here on purpose: the server would ignore it even
+    // if we did, since identity now comes exclusively from the verified cookie.
+    const newSocket = io(SOCKET_URL, {
       withCredentials: true,
-      transports: ['websocket'],
-      auth: { userId },
       reconnection: true,
       reconnectionAttempts: 5,
     });
 
     newSocket.on('connect', () => {
-      console.log('⚡ Socket connected successfully:', newSocket.id);
+      console.log('Socket connected:', newSocket.id);
     });
 
     newSocket.on('connect_error', (err) => {
-      console.error('⚠️ Socket connection error:', err.message);
+      console.error('Socket connection error:', err.message);
     });
 
     setSocket(newSocket);
@@ -44,11 +46,7 @@ export const SocketProvider = ({ children }) => {
     };
   }, [user]);
 
-  return (
-    <SocketContext.Provider value={socket}>
-      {children}
-    </SocketContext.Provider>
-  );
+  return <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>;
 };
 
 export const useSocket = () => useContext(SocketContext);

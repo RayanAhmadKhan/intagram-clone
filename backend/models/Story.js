@@ -15,7 +15,7 @@ const storySchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      default: () => new Date(Date.now() + 10 * 1000), // 10 seconds from creation
+      default: () => new Date(Date.now() + 1 * 60 * 1000), // 1 minute from creation
     },
     deleted: {
       type: Boolean,

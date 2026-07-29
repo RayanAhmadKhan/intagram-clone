@@ -3,7 +3,7 @@ const Story = require('../models/Story');
 const User = require('../models/User');
 const { uploadBufferToCloudinary, deleteFromCloudinary } = require('../utils/cloudinaryUpload');
 const { canViewUserContent } = require('../utils/visibility');
-const { getIO } = require('../config/socket'); // Added socket import
+const { getIO } = require('../config/socket');
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -15,15 +15,9 @@ const serializeStory = (story, viewerId) => ({
     username: story.owner.username,
     avatar: story.owner.avatar,
   },
-  isOwnStory: story.owner._id.equals(viewerId),
+  isOwnStory: story.owner._id.toString() === viewerId.toString(),
   createdAt: story.createdAt,
   expiresAt: story.expiresAt,
-});
-
-const activeStoryFilter = (extra = {}) => ({
-  deleted: false,
-  expiresAt: { $gt: new Date() },
-  ...extra,
 });
 
 // @route   POST /api/stories
@@ -38,22 +32,77 @@ const createStory = async (req, res, next) => {
     const story = await Story.create({
       owner: req.user._id,
       media: { url: result.url, publicId: result.publicId, resourceType: result.resourceType },
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
 
-    const populated = await story.populate('owner', 'username avatar');
+    const populated = await story.populate('owner', 'username avatar followers');
     const serialized = serializeStory(populated, req.user._id);
 
-    // REAL-TIME BROADCAST: Notify all clients of new story
     try {
-      getIO().emit('story:new', { story: serialized, ownerId: req.user._id });
+      const io = getIO();
+      // Only the story owner and their followers should hear about this —
+      // not every connected socket. Each client already joined room
+      // `user:<their own id>` in socket.js, so this reaches exactly the
+      // people who'll actually see it in their story bar.
+      const recipientIds = [req.user._id, ...populated.owner.followers];
+      recipientIds.forEach((id) => {
+        io.to(`user:${id}`).emit('story:new', { story: serialized, ownerId: req.user._id });
+      });
     } catch (err) {
       console.error('Socket emit error:', err.message);
     }
 
     return res.status(201).json({
       success: true,
-      message: 'Story posted — it will expire in 10 minutes',
+      message: 'Story posted',
       data: { story: serialized },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @route   GET /api/stories/feed
+const getFeedStories = async (req, res, next) => {
+  try {
+    const me = await User.findById(req.user._id).select('following');
+    const myIdStr = req.user._id.toString();
+
+    const ownerIds = [req.user._id, ...(me?.following || [])];
+
+    const stories = await Story.find({
+      deleted: false,
+      owner: { $in: ownerIds },
+      expiresAt: { $gt: new Date() },
+    })
+      .sort({ createdAt: 1 })
+      .populate('owner', 'username avatar');
+
+    const grouped = new Map();
+
+    for (const story of stories) {
+      if (!story.owner) continue;
+
+      const ownerIdStr = story.owner._id.toString();
+
+      if (!grouped.has(ownerIdStr)) {
+        grouped.set(ownerIdStr, {
+          owner: {
+            id: ownerIdStr,
+            username: story.owner.username,
+            avatar: story.owner.avatar,
+          },
+          isOwn: ownerIdStr === myIdStr,
+          stories: [],
+        });
+      }
+
+      grouped.get(ownerIdStr).stories.push(serializeStory(story, req.user._id));
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { feed: Array.from(grouped.values()) },
     });
   } catch (error) {
     next(error);
@@ -69,11 +118,16 @@ const getUserStories = async (req, res, next) => {
     if (!owner) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+
     if (!canViewUserContent(req.user._id, owner)) {
       return res.status(403).json({ success: false, message: 'This account is private' });
     }
 
-    const stories = await Story.find(activeStoryFilter({ owner: owner._id }))
+    const stories = await Story.find({
+      owner: owner._id,
+      deleted: false,
+      expiresAt: { $gt: new Date() },
+    })
       .sort({ createdAt: 1 })
       .populate('owner', 'username avatar');
 
@@ -81,35 +135,6 @@ const getUserStories = async (req, res, next) => {
       success: true,
       data: { stories: stories.map((s) => serializeStory(s, req.user._id)) },
     });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @route   GET /api/stories/feed
-const getFeedStories = async (req, res, next) => {
-  try {
-    const me = await User.findById(req.user._id).select('following');
-    const ownerIds = [req.user._id, ...me.following];
-
-    const stories = await Story.find(activeStoryFilter({ owner: { $in: ownerIds } }))
-      .sort({ createdAt: 1 })
-      .populate('owner', 'username avatar');
-
-    const grouped = new Map();
-    for (const story of stories) {
-      const key = story.owner._id.toString();
-      if (!grouped.has(key)) {
-        grouped.set(key, {
-          owner: { id: story.owner._id, username: story.owner.username, avatar: story.owner.avatar },
-          isOwn: story.owner._id.equals(req.user._id),
-          stories: [],
-        });
-      }
-      grouped.get(key).stories.push(serializeStory(story, req.user._id));
-    }
-
-    return res.status(200).json({ success: true, data: { feed: Array.from(grouped.values()) } });
   } catch (error) {
     next(error);
   }

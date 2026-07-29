@@ -1,46 +1,36 @@
 const jwt = require('jsonwebtoken');
 
+// Authenticates a socket exactly like authMiddleware.js authenticates a
+// normal HTTP request: read the real auth cookie, verify its signature,
+// trust nothing the client merely *claims* about its own identity.
 module.exports = (socket, next) => {
   try {
-    let token = socket.handshake.auth?.token || socket.handshake.headers?.authorization;
-    const userId = socket.handshake.auth?.userId;
+    const cookieName = process.env.COOKIE_NAME || 'ig_token';
+    const cookieHeader = socket.handshake.headers?.cookie || '';
 
-    // 1. Check raw cookies if present
-    if (!token && socket.handshake.headers?.cookie) {
-      const rawCookies = socket.handshake.headers.cookie.split(';');
-      for (let c of rawCookies) {
-        const [key, value] = c.trim().split('=');
-        if (['token', 'jwt', 'accessToken', 'session'].includes(key)) {
-          token = value;
-          break;
-        }
-      }
+    const match = cookieHeader
+      .split(';')
+      .map((c) => c.trim())
+      .find((c) => c.startsWith(`${cookieName}=`));
+
+    let token = match ? decodeURIComponent(match.split('=').slice(1).join('=')) : null;
+
+    // Optional fallback for non-browser clients that can't send cookies
+    // (e.g. a future mobile app) — still a real, signed token, never a
+    // bare user id.
+    if (!token && socket.handshake.auth?.token) {
+      token = socket.handshake.auth.token;
     }
 
-    // 2. If token exists, verify it
-    if (token && token !== 'undefined' && token !== 'null') {
-      token = decodeURIComponent(token);
-      if (token.startsWith('s:')) token = token.slice(2).split('.')[0];
-      if (token.startsWith('Bearer ')) token = token.slice(7).trim();
-      token = token.replace(/^["']|["']$/g, '').trim();
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.user = decoded;
-      console.log(`✅ Socket connected (JWT verified) for user: ${decoded.id || decoded._id}`);
-      return next();
+    if (!token) {
+      return next(new Error('Authentication error: no token provided'));
     }
 
-    // 3. Fallback: If cookies were blocked across ports, authenticate by valid userId passed from AuthContext
-    if (userId) {
-      socket.user = { id: userId, _id: userId };
-      console.log(`✅ Socket connected (AuthContext verified) for user ID: ${userId}`);
-      return next();
-    }
-
-    console.error('❌ Socket Auth Failed: No token or userId provided in handshake');
-    return next(new Error('Authentication error: Token missing'));
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = { id: decoded.id };
+    return next();
   } catch (err) {
-    console.error('❌ Socket JWT Verification Error:', err.message);
-    return next(new Error('Authentication error: Invalid token'));
+    console.error('Socket auth failed:', err.message);
+    return next(new Error('Authentication error: invalid token'));
   }
 };
