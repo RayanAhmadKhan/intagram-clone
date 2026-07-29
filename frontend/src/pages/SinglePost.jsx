@@ -3,10 +3,12 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Heart, ChevronLeft, ChevronRight, MoreHorizontal, Trash2, Edit2 } from 'lucide-react';
 import { getPostByIdApi, likePostApi, unlikePostApi, updatePostApi, deletePostApi } from '../services/postService';
 import CommentSection from '../components/CommentSection';
+import { useSocket } from '../contexts/SocketContext'; // NEW IMPORT
 
 export default function SinglePost() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const socket = useSocket(); // SOCKET INSTANCE
 
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +29,29 @@ export default function SinglePost() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Real-time listener for Socket events
+  useEffect(() => {
+    if (!socket || !id) return;
+
+    const likeEvent = `post:${id}:like`;
+
+    const handleRealtimeLike = (data) => {
+      setPost((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          likesCount: data.likesCount !== undefined ? data.likesCount : prev.likesCount,
+        };
+      });
+    };
+
+    socket.on(likeEvent, handleRealtimeLike);
+
+    return () => {
+      socket.off(likeEvent, handleRealtimeLike);
+    };
+  }, [socket, id]);
+
   const fetchPost = async () => {
     try {
       const res = await getPostByIdApi(id);
@@ -41,16 +66,33 @@ export default function SinglePost() {
   };
 
   const handleLikeToggle = async () => {
+    if (!post) return;
+
+    const previousLikedState = post.isLikedByViewer;
+    const previousLikesCount = post.likesCount;
+
+    // Optimistic UI update
+    setPost((prev) => ({
+      ...prev,
+      isLikedByViewer: !previousLikedState,
+      likesCount: previousLikedState
+        ? Math.max(0, (prev.likesCount || 1) - 1)
+        : (prev.likesCount || 0) + 1,
+    }));
+
     try {
-      if (post.isLikedByViewer) {
-        setPost((prev) => ({ ...prev, isLikedByViewer: false, likesCount: Math.max(0, (prev.likesCount || 1) - 1) }));
+      if (previousLikedState) {
         await unlikePostApi(id);
       } else {
-        setPost((prev) => ({ ...prev, isLikedByViewer: true, likesCount: (prev.likesCount || 0) + 1 }));
         await likePostApi(id);
       }
     } catch (err) {
-      fetchPost();
+      // Revert if API request fails
+      setPost((prev) => ({
+        ...prev,
+        isLikedByViewer: previousLikedState,
+        likesCount: previousLikesCount,
+      }));
     }
   };
 
@@ -201,7 +243,7 @@ export default function SinglePost() {
         )}
 
         {/* Comment Section Component */}
-        <CommentSection postId={post._id || id} />
+        <CommentSection postId={post._id || post.id || id} />
       </div>
     </div>
   );

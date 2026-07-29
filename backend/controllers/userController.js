@@ -1,13 +1,10 @@
 const User = require('../models/User');
 const FollowRequest = require('../models/FollowRequest');
 const { uploadBufferToCloudinary, deleteFromCloudinary } = require('../utils/cloudinaryUpload');
+const { getIO } = require('../config/socket');
 
 // @route   GET /api/users/:username
-// @access  Private (must be logged in to view any profile)
-// Full post-content gating (only approved followers can see a private
-// account's posts) is enforced in Step 8 once Posts exist. This endpoint
-// already gates the bio and exposes follow-state so the frontend can render
-// the correct Follow/Requested/Unfollow button.
+// @access  Private
 const getProfileByUsername = async (req, res, next) => {
   try {
     const { username } = req.params;
@@ -96,7 +93,6 @@ const updateAvatar = async (req, res, next) => {
 
     const user = await User.findById(req.user._id);
 
-    // Delete the old avatar from Cloudinary first, if one exists
     if (user.avatar?.publicId) {
       await deleteFromCloudinary(user.avatar.publicId);
     }

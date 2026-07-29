@@ -9,69 +9,74 @@ import CreatePost from "./pages/CreatePost";
 import SinglePost from "./pages/SinglePost";
 import StoryViewer from "./pages/StoryViewer";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { SocketProvider } from "./contexts/SocketContext";
 
 function App() {
+  const token = localStorage.getItem("token");
+
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/requests"
-        element={
-          <ProtectedRoute>
-            <FollowRequests />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/u/:username"
-        element={
-          <ProtectedRoute>
-            <UserProfile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/create-post"
-        element={
-          <ProtectedRoute>
-            <CreatePost />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/posts/:id"
-        element={
-          <ProtectedRoute>
-            <SinglePost />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/stories/:username"
-        element={
-          <ProtectedRoute>
-            <StoryViewer />
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <SocketProvider token={token}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/requests"
+          element={
+            <ProtectedRoute>
+              <FollowRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/u/:username"
+          element={
+            <ProtectedRoute>
+              <UserProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/create-post"
+          element={
+            <ProtectedRoute>
+              <CreatePost />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/posts/:id"
+          element={
+            <ProtectedRoute>
+              <SinglePost />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stories/:username"
+          element={
+            <ProtectedRoute>
+              <StoryViewer />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </SocketProvider>
   );
 }
 
