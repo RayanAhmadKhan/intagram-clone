@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const { canViewUserContent } = require('../utils/visibility');
+const { getIO } = require('../config/socket'); // Added socket import
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -55,11 +56,23 @@ const createComment = async (req, res, next) => {
     await post.save();
 
     const populated = await comment.populate('author', 'username fullName avatar');
+    const commentData = serializeComment(populated, req.user._id, { repliesCount: 0 });
+
+    // REAL-TIME BROADCAST: Emit new comment to listeners
+    try {
+      getIO().emit(`post:${postId}:comment`, {
+        action: 'create',
+        comment: commentData,
+        commentsCount: post.comments.length,
+      });
+    } catch (err) {
+      console.error('Socket emit error:', err.message);
+    }
 
     return res.status(201).json({
       success: true,
       message: 'Comment added',
-      data: { comment: serializeComment(populated, req.user._id, { repliesCount: 0 }) },
+      data: { comment: commentData },
     });
   } catch (error) {
     next(error);
@@ -119,18 +132,29 @@ const updateComment = async (req, res, next) => {
     await comment.save();
 
     const populated = await comment.populate('author', 'username fullName avatar');
+    const updatedData = serializeComment(populated, req.user._id);
+
+    // REAL-TIME BROADCAST: Emit update event
+    try {
+      getIO().emit(`post:${comment.post}:comment`, {
+        action: 'update',
+        comment: updatedData,
+      });
+    } catch (err) {
+      console.error('Socket emit error:', err.message);
+    }
 
     return res.status(200).json({
       success: true,
       message: 'Comment updated',
-      data: { comment: serializeComment(populated, req.user._id) },
+      data: { comment: updatedData },
     });
   } catch (error) {
     next(error);
   }
 };
 
-// DELETE /api/comments/:id (WITH CASCADE DELETION FIX)
+// DELETE /api/comments/:id
 const deleteComment = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -146,17 +170,27 @@ const deleteComment = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'You can only delete your own comments' });
     }
 
-    // Find all reply IDs under this comment
     const replies = await Comment.find({ parentComment: comment._id }, '_id');
     const idsToRemove = [comment._id, ...replies.map((r) => r._id)];
 
-    // 1. Delete parent comment AND all its replies
     await Comment.deleteMany({ _id: { $in: idsToRemove } });
 
-    // 2. Remove ALL deleted IDs (parent + replies) from Post.comments array
-    await Post.findByIdAndUpdate(comment.post, {
-      $pull: { comments: { $in: idsToRemove } },
-    });
+    const updatedPost = await Post.findByIdAndUpdate(
+      comment.post,
+      { $pull: { comments: { $in: idsToRemove } } },
+      { new: true }
+    );
+
+    // REAL-TIME BROADCAST: Emit deletion event
+    try {
+      getIO().emit(`post:${comment.post}:comment`, {
+        action: 'delete',
+        commentId: id,
+        commentsCount: updatedPost ? updatedPost.comments.length : 0,
+      });
+    } catch (err) {
+      console.error('Socket emit error:', err.message);
+    }
 
     return res.status(200).json({
       success: true,
@@ -194,11 +228,23 @@ const createReply = async (req, res, next) => {
     await Post.findByIdAndUpdate(parent.post._id, { $addToSet: { comments: reply._id } });
 
     const populated = await reply.populate('author', 'username fullName avatar');
+    const replyData = serializeComment(populated, req.user._id);
+
+    // REAL-TIME BROADCAST: Emit reply event
+    try {
+      getIO().emit(`post:${parent.post._id}:comment`, {
+        action: 'reply',
+        parentId,
+        reply: replyData,
+      });
+    } catch (err) {
+      console.error('Socket emit error:', err.message);
+    }
 
     return res.status(201).json({
       success: true,
       message: 'Reply added',
-      data: { reply: serializeComment(populated, req.user._id) },
+      data: { reply: replyData },
     });
   } catch (error) {
     next(error);

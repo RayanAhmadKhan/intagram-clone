@@ -3,27 +3,65 @@ import { Link } from 'react-router-dom';
 import { Heart, Trash2, Edit2, Send, ChevronDown, ChevronUp, CornerDownRight } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../contexts/SocketContext'; // Added useSocket
 
 export default function CommentSection({ postId }) {
   const { user } = useAuth();
+  const socket = useSocket();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Editing state
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
-
-  // Reply threads state: { [commentId]: { open: boolean, replies: [], loading: boolean, input: string } }
   const [replyThreads, setReplyThreads] = useState({});
 
   useEffect(() => {
     if (postId) {
       fetchComments();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
+
+  // Socket listener for incoming comment events
+  useEffect(() => {
+    if (!socket || !postId) return;
+
+    const handleRealtimeComment = (data) => {
+      if (data.action === 'create' && data.comment) {
+        setComments((prev) => {
+          if (prev.some((c) => c.id === data.comment.id)) return prev;
+          const isOwn = data.comment.author.id === user?._id || data.comment.author.id === user?.id;
+          return [...prev, { ...data.comment, isOwnComment: isOwn }];
+        });
+      } else if (data.action === 'update' && data.comment) {
+        setComments((prev) =>
+          prev.map((c) => (c.id === data.comment.id ? { ...c, text: data.comment.text } : c))
+        );
+      } else if (data.action === 'delete' && data.commentId) {
+        setComments((prev) => prev.filter((c) => c.id !== data.commentId));
+      } else if (data.action === 'reply' && data.reply) {
+        setReplyThreads((prev) => {
+          const thread = prev[data.parentId];
+          if (!thread) return prev;
+          const isOwn = data.reply.author.id === user?._id || data.reply.author.id === user?.id;
+          return {
+            ...prev,
+            [data.parentId]: {
+              ...thread,
+              replies: [...thread.replies, { ...data.reply, isOwnComment: isOwn }],
+            },
+          };
+        });
+        setComments((prev) =>
+          prev.map((c) => (c.id === data.parentId ? { ...c, repliesCount: (c.repliesCount || 0) + 1 } : c))
+        );
+      }
+    };
+
+    socket.on(`post:${postId}:comment`, handleRealtimeComment);
+    return () => socket.off(`post:${postId}:comment`, handleRealtimeComment);
+  }, [socket, postId, user]);
 
   const fetchComments = async () => {
     try {
@@ -42,12 +80,7 @@ export default function CommentSection({ postId }) {
 
     setSubmitting(true);
     try {
-      const res = await api.post(`/posts/${postId}/comments`, { text: newComment });
-      const created = res.data?.data?.comment;
-
-      if (created) {
-        setComments((prev) => [...prev, created]);
-      }
+      await api.post(`/posts/${postId}/comments`, { text: newComment });
       setNewComment('');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to post comment');
@@ -128,12 +161,10 @@ export default function CommentSection({ postId }) {
             replies: (prev[parentId]?.replies || []).filter((r) => r.id !== id),
           },
         }));
-        // Decrement top-level parent's reply counter
         setComments((prev) =>
           prev.map((c) => (c.id === parentId ? { ...c, repliesCount: Math.max(0, (c.repliesCount || 1) - 1) } : c))
         );
       } else {
-        // Parent deletion removes parent + all replies from state
         setComments((prev) => prev.filter((c) => c.id !== id));
       }
     } catch (err) {
@@ -141,7 +172,6 @@ export default function CommentSection({ postId }) {
     }
   };
 
-  // Reply Toggle & Expand
   const toggleReplyThread = async (commentId) => {
     const thread = replyThreads[commentId] || { open: false, replies: [], loading: false, input: '' };
 
@@ -175,22 +205,11 @@ export default function CommentSection({ postId }) {
     if (!text) return;
 
     try {
-      const res = await api.post(`/comments/${parentId}/replies`, { text });
-      const newReply = res.data?.data?.reply;
-
-      if (newReply) {
-        setReplyThreads((prev) => ({
-          ...prev,
-          [parentId]: {
-            ...prev[parentId],
-            replies: [...(prev[parentId]?.replies || []), newReply],
-            input: '',
-          },
-        }));
-        setComments((prev) =>
-          prev.map((c) => (c.id === parentId ? { ...c, repliesCount: (c.repliesCount || 0) + 1 } : c))
-        );
-      }
+      await api.post(`/comments/${parentId}/replies`, { text });
+      setReplyThreads((prev) => ({
+        ...prev,
+        [parentId]: { ...prev[parentId], input: '' },
+      }));
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to reply');
     }
@@ -200,7 +219,6 @@ export default function CommentSection({ postId }) {
     <div className="mt-4 border-t pt-4">
       <h3 className="text-sm font-semibold mb-3">Comments ({comments.length})</h3>
 
-      {/* Main Comment Input */}
       <form onSubmit={handleCreateComment} className="flex items-center gap-2 mb-4">
         <input
           type="text"
@@ -219,7 +237,6 @@ export default function CommentSection({ postId }) {
         </button>
       </form>
 
-      {/* List */}
       {loading ? (
         <p className="text-xs text-gray-400 text-center py-2">Loading comments...</p>
       ) : comments.length === 0 ? (
@@ -231,7 +248,6 @@ export default function CommentSection({ postId }) {
 
             return (
               <div key={comment.id} className="text-xs">
-                {/* Parent Comment */}
                 <div className="flex gap-2.5 items-start group">
                   <Link to={`/u/${comment.author.username}`}>
                     <img
@@ -310,7 +326,6 @@ export default function CommentSection({ postId }) {
                   </button>
                 </div>
 
-                {/* Reply Toggle Link */}
                 <div className="ml-9 mt-1">
                   <button
                     onClick={() => toggleReplyThread(comment.id)}
@@ -323,10 +338,8 @@ export default function CommentSection({ postId }) {
                   </button>
                 </div>
 
-                {/* Collapsible Thread Container */}
                 {thread.open && (
                   <div className="ml-9 mt-2 pl-2 border-l-2 border-gray-100 space-y-3">
-                    {/* Reply Form */}
                     <div className="flex gap-2 items-center my-2">
                       <CornerDownRight className="w-3 h-3 text-gray-400" />
                       <input
@@ -350,7 +363,6 @@ export default function CommentSection({ postId }) {
                       </button>
                     </div>
 
-                    {/* Replies */}
                     {thread.loading ? (
                       <p className="text-[10px] text-gray-400">Loading replies...</p>
                     ) : (

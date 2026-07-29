@@ -6,6 +6,7 @@ import { useSocket } from "../contexts/SocketContext";
 const FeedPost = ({ post }) => {
   const [mediaIndex, setMediaIndex] = useState(0);
   const [likesCount, setLikesCount] = useState(post.likesCount);
+  const [commentsCount, setCommentsCount] = useState(post.commentsCount || 0);
   const [isLiked, setIsLiked] = useState(post.isLikedByViewer);
   const [liking, setLiking] = useState(false);
 
@@ -13,29 +14,34 @@ const FeedPost = ({ post }) => {
   const media = post.media?.[mediaIndex];
   const postId = String(post.id || post._id);
 
-  // Sync state when props change
   useEffect(() => {
     setLikesCount(post.likesCount);
     setIsLiked(post.isLikedByViewer);
-  }, [post.likesCount, post.isLikedByViewer]);
+    setCommentsCount(post.commentsCount || 0);
+  }, [post.likesCount, post.isLikedByViewer, post.commentsCount]);
 
-  // Listen for real-time socket events
+  // Real-time Likes and Comment Counts
   useEffect(() => {
     if (!socket || !postId) return;
 
-    const eventName = `post:${postId}:like`;
-
     const handleRealtimeLike = (data) => {
-      console.log("🔔 Real-time like event received:", data);
       if (data.likesCount !== undefined) {
         setLikesCount(data.likesCount);
       }
     };
 
-    socket.on(eventName, handleRealtimeLike);
+    const handleRealtimeComment = (data) => {
+      if (data.commentsCount !== undefined) {
+        setCommentsCount(data.commentsCount);
+      }
+    };
+
+    socket.on(`post:${postId}:like`, handleRealtimeLike);
+    socket.on(`post:${postId}:comment`, handleRealtimeComment);
 
     return () => {
-      socket.off(eventName, handleRealtimeLike);
+      socket.off(`post:${postId}:like`, handleRealtimeLike);
+      socket.off(`post:${postId}:comment`, handleRealtimeComment);
     };
   }, [socket, postId]);
 
@@ -46,7 +52,6 @@ const FeedPost = ({ post }) => {
     const prevLiked = isLiked;
     const prevCount = likesCount;
 
-    // Optimistic UI update
     setIsLiked(!prevLiked);
     setLikesCount(prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1);
 
@@ -60,7 +65,6 @@ const FeedPost = ({ post }) => {
         setIsLiked(data.data.isLikedByViewer);
       }
     } catch (err) {
-      // Revert if API request fails
       setIsLiked(prevLiked);
       setLikesCount(prevCount);
     } finally {
@@ -121,7 +125,7 @@ const FeedPost = ({ post }) => {
         {post.caption && <p className="text-sm text-gray-700">{post.caption}</p>}
 
         <Link to={`/posts/${postId}`} className="mt-1 inline-block text-xs text-gray-400 hover:underline">
-          View all {post.commentsCount || 0} comments
+          View all {commentsCount} comments
         </Link>
       </div>
     </div>

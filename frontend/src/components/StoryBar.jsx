@@ -1,21 +1,39 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { useSocket } from "../contexts/SocketContext"; // Added useSocket
 
 const StoryBar = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const socket = useSocket();
   const [feed, setFeed] = useState([]);
   const [uploading, setUploading] = useState(false);
 
   const load = async () => {
-    const { data } = await api.get("/stories/feed");
-    setFeed(data.data.feed);
+    try {
+      const { data } = await api.get("/stories/feed");
+      setFeed(data.data.feed);
+    } catch (err) {
+      console.error("Failed to load stories feed:", err);
+    }
   };
 
   useEffect(() => {
     load();
   }, []);
+
+  // Listen for real-time new stories
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewStory = () => {
+      load(); // Reload feed to format grouped stories cleanly
+    };
+
+    socket.on("story:new", handleNewStory);
+    return () => socket.off("story:new", handleNewStory);
+  }, [socket]);
 
   const handleFileSelected = async (e) => {
     const file = e.target.files[0];
@@ -30,7 +48,7 @@ const StoryBar = () => {
       await load();
     } finally {
       setUploading(false);
-      e.target.value = ""; // allow picking the same file again later
+      e.target.value = "";
     }
   };
 
@@ -39,8 +57,6 @@ const StoryBar = () => {
 
   return (
     <div className="flex gap-4 overflow-x-auto pb-2">
-      {/* Own circle: shows your latest active story if you have one, otherwise
-          just an upload prompt */}
       <div className="flex flex-col items-center gap-1">
         <button
           onClick={() => (ownEntry ? navigate(`/stories/${ownEntry.owner.username}`) : fileInputRef.current.click())}

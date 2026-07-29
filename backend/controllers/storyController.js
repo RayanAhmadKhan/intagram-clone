@@ -3,6 +3,7 @@ const Story = require('../models/Story');
 const User = require('../models/User');
 const { uploadBufferToCloudinary, deleteFromCloudinary } = require('../utils/cloudinaryUpload');
 const { canViewUserContent } = require('../utils/visibility');
+const { getIO } = require('../config/socket'); // Added socket import
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -19,9 +20,6 @@ const serializeStory = (story, viewerId) => ({
   expiresAt: story.expiresAt,
 });
 
-// A story is visible if it's not soft-deleted AND hasn't passed its
-// expiresAt yet — checked here as a safety net independent of the cron
-// sweep, since the sweep only runs once a minute (see jobs/storyExpiryJob.js).
 const activeStoryFilter = (extra = {}) => ({
   deleted: false,
   expiresAt: { $gt: new Date() },
@@ -29,7 +27,6 @@ const activeStoryFilter = (extra = {}) => ({
 });
 
 // @route   POST /api/stories
-// @access  Private
 const createStory = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -44,11 +41,19 @@ const createStory = async (req, res, next) => {
     });
 
     const populated = await story.populate('owner', 'username avatar');
+    const serialized = serializeStory(populated, req.user._id);
+
+    // REAL-TIME BROADCAST: Notify all clients of new story
+    try {
+      getIO().emit('story:new', { story: serialized, ownerId: req.user._id });
+    } catch (err) {
+      console.error('Socket emit error:', err.message);
+    }
 
     return res.status(201).json({
       success: true,
       message: 'Story posted — it will expire in 10 minutes',
-      data: { story: serializeStory(populated, req.user._id) },
+      data: { story: serialized },
     });
   } catch (error) {
     next(error);
@@ -56,7 +61,6 @@ const createStory = async (req, res, next) => {
 };
 
 // @route   GET /api/stories/user/:username
-// @access  Private
 const getUserStories = async (req, res, next) => {
   try {
     const { username } = req.params;
@@ -83,9 +87,6 @@ const getUserStories = async (req, res, next) => {
 };
 
 // @route   GET /api/stories/feed
-// @access  Private
-// Active stories from the viewer's own account plus everyone they follow,
-// grouped by owner — this is what a "story bar" on Home renders from.
 const getFeedStories = async (req, res, next) => {
   try {
     const me = await User.findById(req.user._id).select('following');
@@ -115,7 +116,6 @@ const getFeedStories = async (req, res, next) => {
 };
 
 // @route   DELETE /api/stories/:id
-// @access  Private (owner only)
 const deleteStory = async (req, res, next) => {
   try {
     const { id } = req.params;
