@@ -1,14 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, MessageCircle } from 'lucide-react';
+import EmptyState from './EmptyState';
 
 export default function PostGrid({ posts }) {
   if (!posts || posts.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-500">
-        No posts yet.
-      </div>
-    );
+    return <EmptyState icon="▦" title="No posts yet" />;
   }
 
   return (

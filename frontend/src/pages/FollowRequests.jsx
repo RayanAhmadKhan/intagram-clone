@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
 import { useSocket } from "../contexts/SocketContext";
+import { SkeletonRow } from "../components/Skeleton";
+import EmptyState from "../components/EmptyState";
 
 const FollowRequests = () => {
   const socket = useSocket();
@@ -60,9 +62,15 @@ const FollowRequests = () => {
         </Link>
       </div>
 
-      {loading && <p className="text-sm text-gray-500">Loading...</p>}
+      {loading && (
+        <div className="space-y-1">
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
+        </div>
+      )}
       {!loading && requests.length === 0 && (
-        <p className="text-sm text-gray-500">No pending follow requests.</p>
+        <EmptyState icon="✓" title="No pending follow requests" />
       )}
 
       <div className="space-y-3">

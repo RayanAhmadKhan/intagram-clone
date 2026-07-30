@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import FeedPost from "./FeedPost";
+import { SkeletonPostCard } from "./Skeleton";
+import EmptyState from "./EmptyState";
 
 const Feed = () => {
   const [posts, setPosts] = useState([]);
@@ -46,18 +48,27 @@ const Feed = () => {
   };
 
   if (loading) {
-    return <p className="py-6 text-center text-sm text-gray-400">Loading your feed...</p>;
+    return (
+      <div className="space-y-4">
+        <SkeletonPostCard />
+        <SkeletonPostCard />
+      </div>
+    );
   }
 
   if (error) {
-    return <p className="py-6 text-center text-sm text-red-500">{error}</p>;
+    return (
+      <EmptyState icon="⚠" title="Couldn't load your feed" subtitle={error} />
+    );
   }
 
   if (posts.length === 0) {
     return (
-      <p className="py-6 text-center text-sm text-gray-400">
-        No posts yet — follow some people (or make your own post) to see something here.
-      </p>
+      <EmptyState
+        icon="◎"
+        title="Your feed is empty"
+        subtitle="Follow some people (or make your own post) to see something here."
+      />
     );
   }
 

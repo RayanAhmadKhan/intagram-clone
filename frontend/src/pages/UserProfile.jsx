@@ -3,6 +3,9 @@ import { useParams, Link } from "react-router-dom";
 import api from "../services/api";
 import { getUserPostsApi } from "../services/postService";
 import FollowButton from "../components/FollowButton";
+import PostGrid from "../components/PostGrid";
+import { SkeletonProfileHeader } from "../components/Skeleton";
+import EmptyState from "../components/EmptyState";
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -38,8 +41,20 @@ const UserProfile = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
-  if (loading) return <div className="p-6 text-center text-gray-500">Loading...</div>;
-  if (error) return <div className="p-6 text-center text-red-500">{error}</div>;
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-xl p-6">
+        <SkeletonProfileHeader />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="mx-auto max-w-xl p-6">
+        <EmptyState icon="⚠" title="Couldn't load this profile" subtitle={error} />
+      </div>
+    );
+  }
   if (!profile) return null;
 
   const followStatus = profile.isFollowing
@@ -111,41 +126,10 @@ const UserProfile = () => {
       {canSeePosts ? (
         <div>
           <h2 className="text-sm font-semibold uppercase text-gray-400 mb-3 tracking-wider">Posts</h2>
-          {posts.length === 0 ? (
-            <div className="text-center py-8 text-sm text-gray-500">No posts yet.</div>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              
-
-          {posts.map((post) => {
-            const postId = post._id || post.id; // Handles both MongoDB _id and id
-            const mediaUrl = post.media?.[0]?.url || post.mediaUrl;
-
-          return (
-          <Link
-            key={postId}
-            to={`/posts/${postId}`} // Creates /posts/65a12345... instead of /posts/undefined
-            className="relative aspect-square bg-gray-100 overflow-hidden rounded group"
-          >
-          {mediaUrl ? (
-          <img
-            src={mediaUrl}
-            alt={post.caption || "Post"}
-            className="w-full h-full object-cover group-hover:scale-105 transition"
-          />
-          ) : (
-            <div className="p-2 text-xs text-gray-600 truncate">{post.caption}</div>
-          )}
-          </Link>
-          );
-          })}
-            </div>
-          )}
+          <PostGrid posts={posts} />
         </div>
       ) : (
-        <div className="text-center py-10 border rounded-lg bg-gray-50 text-sm text-gray-500">
-          This account is private. Follow to view posts.
-        </div>
+        <EmptyState icon="🔒" title="This account is private" subtitle="Follow to view their posts." />
       )}
     </div>
   );

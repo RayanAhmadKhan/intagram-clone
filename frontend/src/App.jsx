@@ -12,10 +12,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { SocketProvider } from "./contexts/SocketContext";
 
 function App() {
-  const token = localStorage.getItem("token");
-
   return (
-    <SocketProvider token={token}>
+    <SocketProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

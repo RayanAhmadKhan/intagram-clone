@@ -4,6 +4,8 @@ import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
 import { getUserPostsApi } from "../services/postService";
 import FormInput from "../components/FormInput";
+import PostGrid from "../components/PostGrid";
+import { SkeletonRow } from "../components/Skeleton";
 
 const Profile = () => {
   const { user, refreshUser } = useAuth();
@@ -137,32 +139,12 @@ const Profile = () => {
       <div className="border-t pt-6">
         <h2 className="text-lg font-bold mb-4">Your Posts</h2>
         {loadingPosts ? (
-          <p className="text-center text-sm text-gray-500">Loading posts...</p>
-        ) : posts.length === 0 ? (
-          <p className="text-center text-sm text-gray-500">You haven't posted anything yet.</p>
-        ) : (
-          <div className="grid grid-cols-3 gap-2">
-            {posts.map((post) => {
-              const mediaUrl = post.media?.[0]?.url || post.mediaUrl;
-              return (
-                <Link
-                  key={post._id}
-                  to={`/posts/${post._id}`}
-                  className="relative aspect-square bg-gray-100 overflow-hidden group rounded"
-                >
-                  {mediaUrl ? (
-                    <img
-                      src={mediaUrl}
-                      alt={post.caption || "Post"}
-                      className="w-full h-full object-cover group-hover:scale-105 transition"
-                    />
-                  ) : (
-                    <div className="p-2 text-xs text-gray-600 truncate">{post.caption}</div>
-                  )}
-                </Link>
-              );
-            })}
+          <div className="space-y-1">
+            <SkeletonRow />
+            <SkeletonRow />
           </div>
+        ) : (
+          <PostGrid posts={posts} />
         )}
       </div>
     </div>

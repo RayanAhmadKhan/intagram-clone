@@ -4,6 +4,8 @@ import { Heart, ChevronLeft, ChevronRight, MoreHorizontal, Trash2, Edit2 } from 
 import { getPostByIdApi, likePostApi, unlikePostApi, updatePostApi, deletePostApi } from '../services/postService';
 import CommentSection from '../components/CommentSection';
 import { useSocket } from '../contexts/SocketContext'; // NEW IMPORT
+import { SkeletonPostCard } from '../components/Skeleton';
+import EmptyState from '../components/EmptyState';
 
 export default function SinglePost() {
   const { id } = useParams();
@@ -124,9 +126,27 @@ export default function SinglePost() {
     }
   };
 
-  if (loading) return <div className="text-center py-10 text-gray-500">Loading post...</div>;
-  if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
-  if (!post) return <div className="text-center py-10 text-gray-500">Post not found.</div>;
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto my-6">
+        <SkeletonPostCard />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto my-6">
+        <EmptyState icon="⚠" title="Couldn't load this post" subtitle={error} />
+      </div>
+    );
+  }
+  if (!post) {
+    return (
+      <div className="max-w-2xl mx-auto my-6">
+        <EmptyState icon="○" title="Post not found" />
+      </div>
+    );
+  }
 
   const owner = post.owner || post.user || {};
   const mediaList = post.media?.length ? post.media : post.mediaUrl ? [{ url: post.mediaUrl, resourceType: 'image' }] : [];

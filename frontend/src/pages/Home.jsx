@@ -18,9 +18,10 @@ const Home = () => {
 
   return (
     <div className="mx-auto max-w-md p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-y-2">
         <h1 className="text-xl font-bold">Welcome, {user?.username}</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <NotificationBell />
           <Link to="/requests" className="text-sm font-medium text-brand hover:underline">
             Requests
           </Link>
@@ -32,14 +33,12 @@ const Home = () => {
           </button>
         </div>
       </div>
-      
-        <NotificationBell />
 
       <div className="mt-4">
         <StoryBar />
       </div>
 
-      <div className="mt-4 flex gap-3">
+      <div className="mt-4 flex flex-wrap gap-3">
         <Link
           to="/create-post"
           className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-light"
