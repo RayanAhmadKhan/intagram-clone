@@ -196,17 +196,14 @@ const likePost = async (req, res, next) => {
     post.likes.push(req.user._id);
     await post.save();
 
-    // Broadcast real-time socket events safely inside handler execution
     const io = getIO();
 
-    // 1. Update active viewers of the post with new like counts
     io.emit(`post:${req.params.id}:like`, {
       postId: req.params.id,
       userId: req.user._id,
       likesCount: post.likes.length,
     });
 
-    // 2. Notify the post owner if someone else liked their post
     if (!post.owner._id.equals(req.user._id)) {
       io.to(`user:${post.owner._id}`).emit('notification:new', {
         type: 'like',
@@ -260,6 +257,32 @@ const unlikePost = async (req, res, next) => {
   }
 };
 
+// @route   GET /api/posts/:id/likes
+// @access  Private
+const getPostLikes = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!isValidId(id)) return res.status(400).json({ success: false, message: 'Invalid post id' });
+
+    const post = await Post.findById(id)
+      .populate('likes', 'username fullName avatar')
+      .populate('owner', 'isPrivate followers');
+
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found' });
+
+    if (!canViewUserContent(req.user._id, post.owner)) {
+      return res.status(403).json({ success: false, message: 'This account is private' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { users: post.likes },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   serializePost,
   createPost,
@@ -269,4 +292,5 @@ module.exports = {
   getUserPosts,
   likePost,
   unlikePost,
+  getPostLikes,
 };

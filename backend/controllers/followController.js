@@ -2,12 +2,12 @@ const mongoose = require('mongoose');
 const { getIO } = require('../config/socket');
 const User = require('../models/User');
 const FollowRequest = require('../models/FollowRequest');
+const { canViewUserContent } = require('../utils/visibility');
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // @route   POST /api/follow/:id
 // @access  Private
-// Public account -> follows instantly. Private account -> creates a pending request.
 const followUser = async (req, res, next) => {
   try {
     const { id: targetId } = req.params;
@@ -30,7 +30,6 @@ const followUser = async (req, res, next) => {
     }
 
     if (!targetUser.isPrivate) {
-      // Public account: follow instantly
       await User.findByIdAndUpdate(targetId, { $addToSet: { followers: req.user._id } });
       await User.findByIdAndUpdate(req.user._id, { $addToSet: { following: targetId } });
 
@@ -53,7 +52,6 @@ const followUser = async (req, res, next) => {
       });
     }
 
-    // Private account: create (or report) a pending request
     let request;
     try {
       request = await FollowRequest.create({ requester: req.user._id, recipient: targetId });
@@ -66,7 +64,6 @@ const followUser = async (req, res, next) => {
 
     try {
       const io = getIO();
-      // Emit to both room formats (`user:ID` and `ID`)
       const payload = {
         id: request._id,
         requester: {
@@ -103,7 +100,6 @@ const followUser = async (req, res, next) => {
 
 // @route   DELETE /api/follow/:id
 // @access  Private
-// Unfollows if already following, OR cancels a pending request if one exists.
 const unfollowUser = async (req, res, next) => {
   try {
     const { id: targetId } = req.params;
@@ -120,7 +116,6 @@ const unfollowUser = async (req, res, next) => {
       recipient: targetId,
     });
 
-    // Notify the target user over socket so their Follow Requests list updates live
     try {
       const io = getIO();
       const cancelPayload = {
@@ -146,7 +141,6 @@ const unfollowUser = async (req, res, next) => {
 
 // @route   GET /api/follow/requests
 // @access  Private
-// Incoming pending requests for the logged-in user to accept/reject
 const getFollowRequests = async (req, res, next) => {
   try {
     const requests = await FollowRequest.find({ recipient: req.user._id })
@@ -235,10 +229,58 @@ const rejectFollowRequest = async (req, res, next) => {
   }
 };
 
+// @route   GET /api/follow/:id/followers
+// @access  Private
+const getFollowers = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!isValidId(id)) return res.status(400).json({ success: false, message: 'Invalid user id' });
+
+    const user = await User.findById(id).populate('followers', 'username fullName avatar');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    if (!canViewUserContent(req.user._id, user)) {
+      return res.status(403).json({ success: false, message: 'This account is private' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { users: user.followers },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @route   GET /api/follow/:id/following
+// @access  Private
+const getFollowing = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!isValidId(id)) return res.status(400).json({ success: false, message: 'Invalid user id' });
+
+    const user = await User.findById(id).populate('following', 'username fullName avatar');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    if (!canViewUserContent(req.user._id, user)) {
+      return res.status(403).json({ success: false, message: 'This account is private' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { users: user.following },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   followUser,
   unfollowUser,
   getFollowRequests,
   acceptFollowRequest,
   rejectFollowRequest,
+  getFollowers,
+  getFollowing,
 };
