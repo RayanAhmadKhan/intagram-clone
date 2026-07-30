@@ -15,7 +15,7 @@ const storySchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      default: () => new Date(Date.now() + 1 * 60 * 1000), // 1 minute from creation
+      default: () => new Date(Date.now() + 10 * 60 * 1000), // 10 minutes, per spec
     },
     deleted: {
       type: Boolean,
@@ -29,5 +29,3 @@ const storySchema = new mongoose.Schema(
 storySchema.index({ owner: 1, deleted: 1, expiresAt: 1 });
 
 module.exports = mongoose.model('Story', storySchema);
-
-

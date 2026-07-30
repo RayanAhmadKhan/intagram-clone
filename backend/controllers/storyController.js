@@ -32,7 +32,10 @@ const createStory = async (req, res, next) => {
     const story = await Story.create({
       owner: req.user._id,
       media: { url: result.url, publicId: result.publicId, resourceType: result.resourceType },
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      // expiresAt intentionally omitted — let the schema default (10 minutes,
+      // see models/Story.js) apply. Hardcoding it here previously overrode
+      // that default with 24 hours on every story, which is why stories
+      // weren't disappearing on the timeline you expected.
     });
 
     const populated = await story.populate('owner', 'username avatar followers');
@@ -40,16 +43,12 @@ const createStory = async (req, res, next) => {
 
     try {
       const io = getIO();
-      // Only the story owner and their followers should hear about this —
-      // not every connected socket. Each client already joined room
-      // `user:<their own id>` in socket.js, so this reaches exactly the
-      // people who'll actually see it in their story bar.
       const recipientIds = [req.user._id, ...populated.owner.followers];
       recipientIds.forEach((id) => {
         io.to(`user:${id}`).emit('story:new', { story: serialized, ownerId: req.user._id });
       });
     } catch (err) {
-      console.error('Socket emit error:', err.message);
+      console.error('Socket emit error:', err?.message || err);
     }
 
     return res.status(201).json({
