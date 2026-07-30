@@ -10,6 +10,7 @@ import SinglePost from "./pages/SinglePost";
 import StoryViewer from "./pages/StoryViewer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { SocketProvider } from "./contexts/SocketContext";
+import DirectMessagesPage from "./pages/DirectMessagesPage";
 
 function App() {
   return (
@@ -23,6 +24,14 @@ function App() {
             <ProtectedRoute>
               <Home />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/messages"
+          element={
+          <ProtectedRoute>
+            <DirectMessagesPage />
+          </ProtectedRoute>
           }
         />
         <Route
@@ -70,6 +79,14 @@ function App() {
           element={
             <ProtectedRoute>
               <StoryViewer />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/messages/*"
+          element={
+            <ProtectedRoute>
+              <DirectMessagesPage />
             </ProtectedRoute>
           }
         />

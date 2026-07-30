@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { MessageSquare } from "lucide-react"; // <-- Added missing import
 import { useAuth } from "../contexts/AuthContext";
 import StoryBar from "../components/StoryBar";
 import Feed from "../components/Feed";
 import NotificationBell from "../components/NotificationBell";
-
 
 const Home = () => {
   const { user, logout } = useAuth();
@@ -17,7 +17,7 @@ const Home = () => {
   };
 
   return (
-    <div className="mx-auto max-w-md p-6">
+    <div className="relative mx-auto max-w-md p-6">
       <div className="flex flex-wrap items-center justify-between gap-y-2">
         <h1 className="text-xl font-bold">Welcome, {user?.username}</h1>
         <div className="flex flex-wrap items-center gap-4">
@@ -53,8 +53,7 @@ const Home = () => {
         </Link>
       </div>
 
-      {/* Stand-in for user search (that's a bonus feature) — lets you jump to
-          any username's profile to test the follow system with a second account */}
+      {/* User Search */}
       <form onSubmit={goToProfile} className="mt-6 flex gap-2">
         <input
           value={lookupUsername}
@@ -73,6 +72,16 @@ const Home = () => {
       <div className="mt-6">
         <Feed />
       </div>
+
+      {/* Direct Messages Floating Button */}
+      <Link
+        to="/messages"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-brand px-4 py-3 text-white shadow-lg transition-all hover:bg-brand-light active:scale-95"
+        title="Open Direct Messages"
+      >
+        <MessageSquare className="h-5 w-5" />
+        <span className="text-sm font-semibold">Messages</span>
+      </Link>
     </div>
   );
 };

@@ -21,10 +21,6 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    // withCredentials sends the real httpOnly auth cookie on the handshake —
-    // that's the only thing the server trusts now (see socketAuth.js).
-    // No userId is passed here on purpose: the server would ignore it even
-    // if we did, since identity now comes exclusively from the verified cookie.
     const newSocket = io(SOCKET_URL, {
       withCredentials: true,
       reconnection: true,
@@ -33,6 +29,12 @@ export const SocketProvider = ({ children }) => {
 
     newSocket.on('connect', () => {
       console.log('Socket connected:', newSocket.id);
+
+      // Join personal room for direct messaging
+      const userId = user._id || user.id;
+      if (userId) {
+        newSocket.emit('join', userId);
+      }
     });
 
     newSocket.on('connect_error', (err) => {

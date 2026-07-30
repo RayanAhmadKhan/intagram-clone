@@ -45,9 +45,17 @@ app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/feed', feedRoutes);
+app.use('/api/messages', require('./routes/messageRoutes'));
 
 // Error Middlewares
-app.use(notFound);
-app.use(errorHandler);
+//app.use(notFound);
+///app.use(errorHandler);
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error',
+  });
+});
 
 module.exports = { app, server };
