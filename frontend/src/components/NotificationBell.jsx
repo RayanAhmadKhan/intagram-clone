@@ -14,7 +14,7 @@ const labelFor = (n) => {
     case "follow_accepted":
       return `@${n.sender} accepted your follow request.`;
     default:
-      return n.message || "New activity";
+      return n.message || n.text || "New activity";
   }
 };
 
@@ -28,13 +28,18 @@ const NotificationBell = () => {
 
     const handleNotification = (payload) => {
       setNotifications((prev) => [
-        { id: `${Date.now()}-${Math.random()}`, read: false, ...payload },
+        { id: payload.id || `${Date.now()}-${Math.random()}`, read: false, ...payload },
         ...prev,
       ]);
     };
 
     socket.on("notification:new", handleNotification);
-    return () => socket.off("notification:new", handleNotification);
+    socket.on("notification:received", handleNotification);
+
+    return () => {
+      socket.off("notification:new", handleNotification);
+      socket.off("notification:received", handleNotification);
+    };
   }, [socket]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -51,8 +56,8 @@ const NotificationBell = () => {
       <button onClick={toggleOpen} className="relative text-sm font-medium text-brand hover:underline">
         Notifications
         {unreadCount > 0 && (
-          <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
-            {unreadCount}
+          <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white font-bold">
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>

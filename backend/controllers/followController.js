@@ -35,7 +35,8 @@ const followUser = async (req, res, next) => {
       await User.findByIdAndUpdate(req.user._id, { $addToSet: { following: targetId } });
 
       try {
-        getIO().to(`user:${targetId}`).emit('notification:new', {
+        const io = getIO();
+        io.to(`user:${targetId}`).to(targetId.toString()).emit('notification:new', {
           type: 'follow',
           sender: req.user.username,
           userId: req.user._id,
@@ -65,20 +66,23 @@ const followUser = async (req, res, next) => {
 
     try {
       const io = getIO();
-      // Specific event so the recipient's Requests page can push this into
-      // its list live, without a page refresh...
-      io.to(`user:${targetId}`).emit('follow:request', {
+      // Emit to both room formats (`user:ID` and `ID`)
+      const payload = {
         id: request._id,
         requester: {
           id: req.user._id,
+          _id: req.user._id,
           username: req.user.username,
           fullName: req.user.fullName,
           avatar: req.user.avatar,
         },
         createdAt: request.createdAt,
-      });
-      // ...plus the generic notification, same pattern as likes/comments.
-      io.to(`user:${targetId}`).emit('notification:new', {
+      };
+
+      io.to(`user:${targetId}`).to(targetId.toString()).emit('follow:request', payload);
+      io.to(`user:${targetId}`).to(targetId.toString()).emit('follow_request', payload);
+
+      io.to(`user:${targetId}`).to(targetId.toString()).emit('notification:new', {
         type: 'follow_request',
         sender: req.user.username,
         message: 'requested to follow you.',
@@ -115,6 +119,20 @@ const unfollowUser = async (req, res, next) => {
       requester: req.user._id,
       recipient: targetId,
     });
+
+    // Notify the target user over socket so their Follow Requests list updates live
+    try {
+      const io = getIO();
+      const cancelPayload = {
+        requesterId: req.user._id.toString(),
+        requestId: deletedRequest ? deletedRequest._id.toString() : null,
+      };
+
+      io.to(`user:${targetId}`).to(targetId.toString()).emit('follow:canceled', cancelPayload);
+      io.to(`user:${targetId}`).to(targetId.toString()).emit('follow_canceled', cancelPayload);
+    } catch (err) {
+      console.error('Socket emit error:', err.message);
+    }
 
     return res.status(200).json({
       success: true,
@@ -167,13 +185,12 @@ const acceptFollowRequest = async (req, res, next) => {
 
     try {
       const io = getIO();
-      // The specific "followAccepted" event your roadmap calls for — lets the
-      // requester's UserProfile button flip from "Requested" to "Unfollow"
-      // live, without them refreshing.
-      io.to(`user:${request.requester}`).emit('follow:accepted', {
+      const requesterRoom = request.requester.toString();
+
+      io.to(`user:${requesterRoom}`).to(requesterRoom).emit('follow:accepted', {
         by: { id: req.user._id, username: req.user.username },
       });
-      io.to(`user:${request.requester}`).emit('notification:new', {
+      io.to(`user:${requesterRoom}`).to(requesterRoom).emit('notification:new', {
         type: 'follow_accepted',
         sender: req.user.username,
         message: 'accepted your follow request.',
@@ -202,10 +219,10 @@ const rejectFollowRequest = async (req, res, next) => {
     await request.deleteOne();
 
     try {
-      // Quietly reset the requester's own button state live — deliberately
-      // NOT a user-facing "you were rejected" notification (Instagram itself
-      // declines to broadcast rejections too), just a state sync.
-      getIO().to(`user:${request.requester}`).emit('follow:rejected', {
+      const io = getIO();
+      const requesterRoom = request.requester.toString();
+
+      io.to(`user:${requesterRoom}`).to(requesterRoom).emit('follow:rejected', {
         by: { id: req.user._id, username: req.user.username },
       });
     } catch (err) {

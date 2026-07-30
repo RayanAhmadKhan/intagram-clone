@@ -41,6 +41,7 @@
 //   },
 // };
 const { Server } = require('socket.io');
+const socketAuth = require('../middlewares/socketAuth');
 
 let io;
 
@@ -48,23 +49,38 @@ const initSocket = (server) => {
   io = new Server(server, {
     cors: {
       origin: process.env.CLIENT_URL || 'http://localhost:5173',
-      credentials: true,
+      methods: ['GET', 'POST'],
+      credentials: true, // MUST BE TRUE to receive cookies
     },
   });
 
-  io.on('connection', (socket) => {
-    console.log('User connected to socket:', socket.id);
+  // Authenticate client sockets
+  if (socketAuth) {
+    io.use(socketAuth);
+  }
 
-    // Join user room for receiving real-time direct messages
-    socket.on('join', (userId) => {
-      if (userId) {
-        socket.join(userId.toString());
-        console.log(`Socket ${socket.id} joined room: ${userId}`);
+  io.on('connection', (socket) => {
+    const userId = socket.user?.id || socket.user?._id;
+
+    if (userId) {
+      // Join user-specific room for notifications, follow requests, and messages
+      socket.join(userId.toString());
+      socket.join(`user:${userId}`);
+      io.emit('user:online', { userId });
+    }
+
+    // Explicit room join listener for safety
+    socket.on('join', (roomUserId) => {
+      if (roomUserId) {
+        socket.join(roomUserId.toString());
+        socket.join(`user:${roomUserId}`);
       }
     });
 
     socket.on('disconnect', () => {
-      console.log('User disconnected from socket:', socket.id);
+      if (userId) {
+        io.emit('user:offline', { userId });
+      }
     });
   });
 
@@ -73,7 +89,7 @@ const initSocket = (server) => {
 
 const getIO = () => {
   if (!io) {
-    throw new Error('Socket.io not initialized!');
+    throw new Error('Socket.io has not been initialized!');
   }
   return io;
 };
