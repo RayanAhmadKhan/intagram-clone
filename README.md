@@ -1,14 +1,96 @@
-# Instagram Clone — TechPrysm Evaluation Project
+# Instagram Clone 📸
 
-A full-stack Instagram-style social media application built using **React**, **Tailwind CSS**, **Node.js**, **Express**, **MongoDB**, **Cloudinary**, and **Socket.IO**.
-
-The project demonstrates authentication, media uploads, social interactions, real-time updates, and responsive UI while following a scalable backend architecture.
+A full-stack Instagram-inspired social media application built with **React, Node.js, Express, MongoDB, Cloudinary, and Socket.IO**. The application provides a modern social networking experience with secure authentication, media sharing, real-time interactions, private accounts, and responsive design.
 
 ---
 
-# Tech Stack
+## 🚀 Features
 
-### Frontend
+### 🔐 Authentication
+
+* User Registration
+* Secure Login & Logout
+* JWT Authentication
+* HTTP-only Cookie Authentication
+* Protected Routes
+* Current User Session
+
+### 👤 User Profiles
+
+* Public & Private Profiles
+* Edit Profile Information
+* Upload Profile Picture
+* Bio Management
+* Followers & Following Lists
+
+### 🤝 Follow System
+
+* Follow / Unfollow Users
+* Follow Requests
+* Accept or Reject Requests
+* Private Account Support
+
+### 📝 Posts
+
+* Create Posts
+* Edit Posts
+* Delete Posts
+* Image & Video Uploads
+* View User Posts
+
+### ❤️ Likes
+
+* Like & Unlike Posts
+* Live Like Count Updates
+
+### 💬 Comments & Replies
+
+* Add Comments
+* Delete Comments
+* Reply to Comments
+* Like Replies
+* Threaded Conversations
+
+### 📖 Stories
+
+* Upload Stories
+* View Stories
+* Automatic Expiry after 10 Minutes
+* Soft Delete
+* Scheduled Cleanup
+
+### 📰 Personalized Feed
+
+* Feed from Followed Users
+* Latest Posts First
+* Private Account Visibility Rules
+
+### ⚡ Real-Time Features
+
+Powered by **Socket.IO**
+
+* Instant Like Updates
+* Live Comments
+* Story Updates
+* Follow Request Notifications
+* Follow Acceptance Notifications
+* Feed Synchronization
+
+### 📱 Responsive UI
+
+* Mobile Friendly
+* Tablet Support
+* Desktop Support
+* Loading States
+* Error Handling
+* Empty States
+* Instagram-inspired Design
+
+---
+
+# 🛠 Tech Stack
+
+## Frontend
 
 * React (Vite)
 * Tailwind CSS
@@ -16,13 +98,13 @@ The project demonstrates authentication, media uploads, social interactions, rea
 * Axios
 * Socket.IO Client
 
-### Backend
+## Backend
 
 * Node.js
 * Express.js
 * MongoDB
 * Mongoose
-* JWT Authentication
+* JWT
 * Express Validator
 * Multer
 * Cloudinary
@@ -30,348 +112,257 @@ The project demonstrates authentication, media uploads, social interactions, rea
 
 ---
 
-# Architecture
+# 🏗 Architecture
 
-```text
-React (Vite) ── axios / Socket.IO ──► Express API ──► MongoDB
-                                          │
-                                          ├── Cloudinary (Media Storage)
-                                          └── Socket.IO Server
+```
+                React (Vite)
+                      │
+          Axios & Socket.IO Client
+                      │
+                      ▼
+              Express REST API
+                      │
+      ┌───────────────┴───────────────┐
+      │                               │
+ MongoDB Atlas                 Cloudinary
+(Database Storage)           (Media Storage)
+      │
+      ▼
+ Socket.IO Server
+(Real-Time Communication)
 ```
 
 ---
 
-# Project Structure
+# 📂 Project Structure
 
-## Backend
-
-```text
-backend/
-│
-├── config/          # Database & Cloudinary configuration
-├── controllers/     # Business logic
-├── middlewares/     # Authentication & error handling
-├── models/          # Mongoose schemas
-├── routes/          # API routes
-├── socket/          # Socket.IO event handlers
-├── utils/           # Helper utilities
-├── validators/      # express-validator rules
-└── server.js
 ```
-
-## Frontend
-
-```text
-frontend/src/
+instagram-clone/
 │
-├── components/      # Reusable UI
-├── contexts/        # Auth context
-├── hooks/           # Custom hooks
-├── layouts/         # Shared layouts
-├── pages/           # Route pages
-├── services/        # Axios instance
-└── main.jsx
+├── backend/
+│   ├── config/
+│   ├── controllers/
+│   ├── middlewares/
+│   ├── models/
+│   ├── routes/
+│   ├── socket/
+│   ├── utils/
+│   ├── validators/
+│   ├── server.js
+│   └── package.json
+│
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── contexts/
+│   │   ├── hooks/
+│   │   ├── layouts/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   └── package.json
+│
+└── README.md
 ```
 
 ---
 
-# Features
+# 🔒 Security
 
-## Authentication
-
-* User Registration
-* User Login
-* Secure Logout
+* Password Hashing using **bcrypt**
 * JWT Authentication
-* httpOnly Cookie Authentication
+* HTTP-only Cookies
 * Protected Routes
-* Current User Endpoint
+* Input Validation with Express Validator
+* Secure Media Uploads
+* Authentication Middleware
+* Error Handling Middleware
 
 ---
 
-## User Profiles
+# ☁️ Media Storage
 
-* View Profile
-* Edit Profile
-* Upload Avatar
-* Public / Private Accounts
-* Bio & Profile Information
+All images and videos are uploaded to **Cloudinary**, providing:
+
+* Secure Cloud Storage
+* Optimized Image Delivery
+* Video Support
+* Automatic CDN Distribution
 
 ---
 
-## Follow System
+# ⚡ Real-Time Communication
 
-* Follow Users
-* Unfollow Users
+Socket.IO enables instant updates throughout the application including:
+
+* Likes
+* Comments
+* Stories
 * Follow Requests
-* Accept Requests
-* Reject Requests
-* Private Account Support
-
----
-
-## Media Uploads
-
-* Cloudinary Integration
-* Image Uploads
-* Video Uploads
-* Optimized Media Delivery
-
----
-
-## Posts
-
-* Create Post
-* Edit Post
-* Delete Post
-* View User Posts
-* Image Posts
-* Video Posts
-
----
-
-## Likes
-
-* Like Posts
-* Unlike Posts
-* Live Like Count
-
----
-
-## Comments
-
-* Add Comments
-* Delete Comments
-* View Comments
-
----
-
-## Replies
-
-* Reply to Comments
-* Like Replies
-* Threaded Conversations
-
----
-
-## Stories
-
-* Upload Stories
-* View Stories
-* Automatic Expiry (10 Minutes)
-* Soft Delete
-* Scheduled Cleanup
-
----
-
-## Feed
-
-* Personalized Feed
-* Posts from Followed Users
-* Latest Content First
-
----
-
-## Real-Time Features
-
-Implemented using **Socket.IO**
-
-* Instant Likes
-* Live Comments
-* Story Updates
-* Follow Request Notifications
-* Follow Acceptance Notifications
+* Follow Acceptances
 * Feed Updates
 
 ---
 
-## Frontend
+# ⚙️ Installation
 
-* Responsive Design
-* Mobile Friendly
-* Loading States
-* Error States
-* Empty States
-* Modern Instagram-inspired UI
+## Clone Repository
+
+```bash
+git clone https://github.com/your-username/instagram-clone.git
+
+cd instagram-clone
+```
 
 ---
 
-# Local Setup
-
-## Backend
+## Backend Setup
 
 ```bash
 cd backend
-cp .env.example .env
-
-# Fill in
-# MONGO_URI
-# JWT_SECRET
-# CLOUDINARY_CLOUD_NAME
-# CLOUDINARY_API_KEY
-# CLOUDINARY_API_SECRET
 
 npm install
+
+cp .env.example .env
+```
+
+```env
+
+CLIENT_URL= https://intagram-clone-zeta.vercel.app
+```
+
+Run the server:
+
+```bash
 npm run dev
 ```
 
-Runs on:
+Backend:
+headover to .env.example for env details
 
 ```
-http://localhost:5000
+link : https://intagram-clone-tje9.onrender.com
 ```
 
 ---
 
-## Frontend
+## Frontend Setup
 
 ```bash
 cd frontend
-cp .env.example .env
 
 npm install
+
+headover to .env.example for env details
+
+```
+
+
+
+Run:
+
+```bash
 npm run dev
 ```
 
-Runs on:
+Frontend:
 
 ```
-http://localhost:5173
+link: https://intagram-clone-zeta.vercel.app
+
 ```
 
 ---
 
-# API Endpoints
+# 🌐 API Overview
 
 ## Authentication
 
-| Method | Endpoint           | Access  |
-| ------ | ------------------ | ------- |
-| POST   | /api/auth/register | Public  |
-| POST   | /api/auth/login    | Public  |
-| POST   | /api/auth/logout   | Private |
-| GET    | /api/auth/me       | Private |
+* Register
+* Login
+* Logout
+* Get Current User
 
----
+## Users
 
-## User
+* View Profile
+* Update Profile
+* Upload Avatar
 
-| Method | Endpoint             |
-| ------ | -------------------- |
-| GET    | /api/users/:username |
-| PUT    | /api/users/profile   |
-| PUT    | /api/users/avatar    |
+## Follow System
 
----
-
-## Follow
-
-| Method | Endpoint                      |
-| ------ | ----------------------------- |
-| POST   | /api/users/:id/follow         |
-| DELETE | /api/users/:id/unfollow       |
-| POST   | /api/users/:id/request/accept |
-| POST   | /api/users/:id/request/reject |
-
----
+* Follow User
+* Unfollow User
+* Accept Request
+* Reject Request
 
 ## Posts
 
-| Method | Endpoint       |
-| ------ | -------------- |
-| POST   | /api/posts     |
-| GET    | /api/posts/:id |
-| PUT    | /api/posts/:id |
-| DELETE | /api/posts/:id |
-
----
-
-## Likes
-
-| Method | Endpoint            |
-| ------ | ------------------- |
-| POST   | /api/posts/:id/like |
-| DELETE | /api/posts/:id/like |
-
----
+* Create Post
+* Update Post
+* Delete Post
+* Get Post
 
 ## Comments
 
-| Method | Endpoint                |
-| ------ | ----------------------- |
-| POST   | /api/posts/:id/comments |
-| DELETE | /api/comments/:id       |
-
----
+* Add Comment
+* Delete Comment
+* Reply to Comment
 
 ## Stories
 
-| Method | Endpoint         |
-| ------ | ---------------- |
-| POST   | /api/stories     |
-| GET    | /api/stories     |
-| DELETE | /api/stories/:id |
+* Upload Story
+* View Stories
+* Delete Story
+
 
 ---
 
-# Progress
+# 🚀 Deployment
 
-* [x] Step 1 — Requirements & Planning
-* [x] Step 2 — Architecture
-* [x] Step 3 — Project Setup
-* [x] Step 4 — Authentication
-* [x] Step 5 — User Profiles
-* [x] Step 6 — Follow System
-* [x] Step 7 — Cloudinary Integration
-* [x] Step 8 — Posts
-* [x] Step 9 — Likes
-* [x] Step 10 — Comments
-* [x] Step 11 — Replies & Comment Likes
-* [x] Step 12 — Stories
-* [x] Step 13 — Feed
-* [x] Step 14 — Socket.IO Real-Time Features
-* [x] Step 15 — Frontend Polish
-* [ ] Step 16 — Deployment
-* [ ] Step 17 — Final README
-* [ ] Bonus — Direct Messaging
+| Service  | URL           |
+| -------- | ------------- |
+| Frontend | link: https://intagram-clone-zeta.vercel.app |
+| Backend  | https://intagram-clone-tje9.onrender.com     |
 
 ---
 
-# Security
+# 🧪 Demo Account
 
-* Password hashing with bcrypt
-* JWT Authentication
-* httpOnly Cookies
-* Request Validation
-* Protected API Routes
-* Cloudinary-secured media uploads
+```
+Email: test4@gmail.com
+Password: Pakistan123
+```
 
 ---
 
-# Deployment
+# 📈 Future Improvements
 
-To be added after deployment.
-
-* Frontend
-* Backend
-* MongoDB Atlas
-
----
-
-# Demo Credentials
-
-To be added before submission.
-
----
-
-# Future Improvements
-
-* Direct Messaging
-* Notifications Center
 * Infinite Scrolling
 * Saved Posts
-* Search Users
 * Explore Page
+* Search Users
 * Hashtags
-* Video Reels
-* Push Notifications
+* Reels
+* Email Verification
+* Password Reset
+* Two-Factor Authentication
+
+---
+
+# 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome. Feel free to fork the repository and submit a pull request.
+
+---
+
+# 📄 License
+
+This project was developed as part of the **Intenrship** and is intended for educational and portfolio purposes.
+
+---
+
+## ⭐ If you found this project helpful, consider giving it a star!
