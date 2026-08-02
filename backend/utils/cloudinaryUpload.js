@@ -2,9 +2,9 @@ const { Readable } = require('stream');
 const cloudinary = require('../config/cloudinary');
 
 /**
- * Uploads a buffer (e.g. req.file.buffer from multer memoryStorage) to Cloudinary.
+ * 
  * @param {Buffer} buffer
- * @param {string} folder - Cloudinary folder, e.g. 'instagram-clone/posts'
+ * @param {string} folder - Cloudinary folder
  * @param {string} resourceType - 'image' | 'video' | 'auto' (default 'auto' lets
  *   Cloudinary detect it, which is what Posts/Stories need since they accept both)
  * @returns {Promise<{url: string, publicId: string, resourceType: string}>}

@@ -56,7 +56,7 @@ const followUser = async (req, res, next) => {
     try {
       request = await FollowRequest.create({ requester: req.user._id, recipient: targetId });
     } catch (err) {
-      if (err.code === 11000) {
+      if (err.code === 11000) {  // Duplicate key error, meaning a follow request already exists
         return res.status(409).json({ success: false, message: 'Follow request already sent' });
       }
       throw err;

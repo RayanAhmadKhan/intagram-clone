@@ -1,6 +1,4 @@
-// Shared loading-skeleton primitives — swap plain "Loading..." text for a
-// shape that hints at the content about to appear, so the layout doesn't
-// jump when real content arrives.
+
 
 export const SkeletonLine = ({ className = "" }) => (
   <div className={`animate-pulse rounded bg-gray-200 ${className}`} />
@@ -10,8 +8,6 @@ export const SkeletonCircle = ({ size = "h-10 w-10" }) => (
   <div className={`animate-pulse rounded-full bg-gray-200 ${size}`} />
 );
 
-// One fake feed/post card — mirrors FeedPost's actual layout (avatar + name
-// row, media block, action row, caption line) so the swap-in doesn't jump.
 export const SkeletonPostCard = () => (
   <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
     <div className="flex items-center gap-2 px-4 py-3">

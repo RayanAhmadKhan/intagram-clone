@@ -1,11 +1,5 @@
 const { uploadBufferToCloudinary, deleteFromCloudinary } = require('../utils/cloudinaryUpload');
 
-// @route   POST /api/media/test-upload
-// @access  Private
-// This is a throwaway diagnostic route for Step 7 — it exists only to prove
-// the Cloudinary media service (image + video, buffer -> stream -> Cloudinary)
-// works before Posts (Step 8) starts calling uploadBufferToCloudinary directly
-// from the real post-creation flow. Safe to delete once Step 8 is underway.
 const testUpload = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -24,10 +18,6 @@ const testUpload = async (req, res, next) => {
   }
 };
 
-// @route   DELETE /api/media/test-upload/:publicId
-// @access  Private
-// Lets you verify deletion works too (Cloudinary public IDs can contain slashes,
-// so the client should URL-encode the id — see testing instructions).
 const testDelete = async (req, res, next) => {
   try {
     const { publicId } = req.params;

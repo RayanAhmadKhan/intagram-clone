@@ -2,19 +2,15 @@ import { useEffect, useState } from "react";
 import api from "../services/api";
 import { useSocket } from "../contexts/SocketContext";
 
-// status: "following" | "requested" | "not_following"
 const FollowButton = ({ userId, initialStatus, onChange }) => {
   const socket = useSocket();
   const [status, setStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(false);
 
-  // Keep in sync if the parent re-fetches and passes a new initialStatus
   useEffect(() => {
     setStatus(initialStatus);
   }, [initialStatus]);
 
-  // Live: if the profile currently on screen accepts/rejects our pending
-  // request from another tab/device, this button updates without a refresh.
   useEffect(() => {
     if (!socket) return;
 

@@ -23,7 +23,6 @@ export default function CommentSection({ postId }) {
     }
   }, [postId]);
 
-  // Socket listener for incoming comment events
   useEffect(() => {
     if (!socket || !postId) return;
 

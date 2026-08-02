@@ -2,12 +2,10 @@ const Post = require('../models/Post');
 const User = require('../models/User');
 const { serializePost } = require('./postController');
 
-// @route   GET /api/feed?page=1&limit=10
+
+// @desc    Get feed posts for the authenticated user
+// @route   GET /api/feed
 // @access  Private
-// Posts already only ever come from users you follow (private accounts only
-// enter your "following" list once they've accepted your request), so no
-// extra per-post privacy check is needed here — that gate already happened
-// at follow-time. This is exactly why Follow (Step 6) had to come before Feed.
 const getFeed = async (req, res, next) => {
   try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);

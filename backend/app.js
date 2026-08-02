@@ -17,10 +17,8 @@ const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 const app = express();
 const server = http.createServer(app);
 
-// Initialize Socket.io integration with HTTP server
 initSocket(server);
 
-// Middleware
 app.use(
   cors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -47,9 +45,6 @@ app.use('/api/stories', storyRoutes);
 app.use('/api/feed', feedRoutes);
 app.use('/api/messages', require('./routes/messageRoutes'));
 
-// Error Middlewares
-//app.use(notFound);
-///app.use(errorHandler);
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({

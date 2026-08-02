@@ -39,8 +39,6 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  // Re-fetches /auth/me — call this after editing the profile so the
-  // header/avatar/etc. everywhere in the app reflect the latest data.
   const refreshUser = async () => {
     await fetchMe();
   };

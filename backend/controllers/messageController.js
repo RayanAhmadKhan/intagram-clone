@@ -14,11 +14,11 @@ const sendMessage = async (req, res, next) => {
     const { recipientId, text } = req.body;
     const senderId = getUserId(req);
 
-    if (!senderId) {
+    if (!senderId) { // 401 Unauthorized
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
 
-    if (!recipientId) {
+    if (!recipientId) { //400 Bad Request
       return res.status(400).json({ success: false, message: 'Recipient is required' });
     }
 

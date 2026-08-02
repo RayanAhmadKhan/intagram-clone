@@ -18,8 +18,7 @@ const commentSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500,
     },
-    // Reserved for Step 11 — replies (a reply is a Comment whose parentComment
-    // points at the comment it's replying to) and comment likes.
+    
     parentComment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Comment',

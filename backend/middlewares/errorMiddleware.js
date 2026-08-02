@@ -2,7 +2,6 @@ const notFound = (req, res, next) => {
   res.status(404).json({ success: false, message: `Route not found: ${req.originalUrl}` });
 };
 
-// eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, next) => {
   console.error(err.stack);
 

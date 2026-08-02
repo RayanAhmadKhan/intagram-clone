@@ -25,7 +25,6 @@ const storySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Fast lookups for "active stories by owner" and for the cron sweep
 storySchema.index({ owner: 1, deleted: 1, expiresAt: 1 });
 
 module.exports = mongoose.model('Story', storySchema);

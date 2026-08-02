@@ -47,7 +47,6 @@ const FollowRequests = () => {
       });
     };
 
-    // 2. Live: remove request if sender un-requests / unfollows
     const handleCanceledRequest = (payload) => {
       const canceledRequesterId = payload.requesterId || payload.id || payload._id;
       const canceledRequestId = payload.requestId;

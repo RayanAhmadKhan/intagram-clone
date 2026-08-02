@@ -29,7 +29,6 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Index for fast query of conversation threads
 messageSchema.index({ sender: 1, recipient: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Message', messageSchema);

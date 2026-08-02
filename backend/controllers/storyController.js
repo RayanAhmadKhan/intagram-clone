@@ -32,10 +32,7 @@ const createStory = async (req, res, next) => {
     const story = await Story.create({
       owner: req.user._id,
       media: { url: result.url, publicId: result.publicId, resourceType: result.resourceType },
-      // expiresAt intentionally omitted — let the schema default (10 minutes,
-      // see models/Story.js) apply. Hardcoding it here previously overrode
-      // that default with 24 hours on every story, which is why stories
-      // weren't disappearing on the timeline you expected.
+      // expiry handles at models -> story 10 min 
     });
 
     const populated = await story.populate('owner', 'username avatar followers');

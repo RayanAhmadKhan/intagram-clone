@@ -7,6 +7,7 @@ const { canViewUserContent } = require('../utils/visibility');
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
+// formatting the post object to send to the client
 const serializePost = (post, viewerId) => ({
   id: post._id,
   caption: post.caption,
