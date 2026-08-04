@@ -3,10 +3,14 @@ const socketAuth = require('../middlewares/socketAuth');
 
 let io;
 
+const clientOrigin = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((origin) => origin.trim())
+  : true;
+
 const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: clientOrigin,
       methods: ['GET', 'POST'],
       credentials: true, 
     },

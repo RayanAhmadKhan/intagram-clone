@@ -1,44 +1,38 @@
-import axios from 'axios';
-
-const API = axios.create({
-  baseURL: '/api/posts', // Vite proxy forwards /api/posts to http://localhost:5000/api/posts
-  withCredentials: true,
-});
+import api from './api';
 
 export const createPostApi = async (formData) => {
-  // Use '' instead of '/' so it sends POST to /api/posts directly
-  const { data } = await API.post('', formData, {
+  const { data } = await api.post('/posts', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return data;
 };
 
 export const getPostByIdApi = async (id) => {
-  const { data } = await API.get(`/${id}`);
+  const { data } = await api.get(`/posts/${id}`);
   return data;
 };
 
 export const getUserPostsApi = async (username) => {
-  const { data } = await API.get(`/user/${username}`);
+  const { data } = await api.get(`/posts/user/${username}`);
   return data;
 };
 
 export const updatePostApi = async (id, caption) => {
-  const { data } = await API.put(`/${id}`, { caption });
+  const { data } = await api.put(`/posts/${id}`, { caption });
   return data;
 };
 
 export const deletePostApi = async (id) => {
-  const { data } = await API.delete(`/${id}`);
+  const { data } = await api.delete(`/posts/${id}`);
   return data;
 };
 
 export const likePostApi = async (id) => {
-  const { data } = await API.post(`/${id}/like`);
+  const { data } = await api.post(`/posts/${id}/like`);
   return data;
 };
 
 export const unlikePostApi = async (id) => {
-  const { data } = await API.delete(`/${id}/like`);
+  const { data } = await api.delete(`/posts/${id}/like`);
   return data;
 };

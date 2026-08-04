@@ -4,9 +4,14 @@ import { useAuth } from './AuthContext';
 
 const SocketContext = createContext(null);
 
-const SOCKET_URL = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
-  : 'http://localhost:5001';
+const configuredSocketUrl = import.meta.env.VITE_SOCKET_URL?.trim();
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+
+const SOCKET_URL = configuredSocketUrl
+  ? configuredSocketUrl.replace(/\/$/, '')
+  : configuredApiUrl && !configuredApiUrl.startsWith('/')
+    ? configuredApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '')
+    : window.location.origin;
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);

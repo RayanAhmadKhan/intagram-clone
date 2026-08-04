@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -17,11 +19,15 @@ const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 const app = express();
 const server = http.createServer(app);
 
+const clientOrigin = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((origin) => origin.trim())
+  : true;
+
 initSocket(server);
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: clientOrigin,
     credentials: true,
   })
 );

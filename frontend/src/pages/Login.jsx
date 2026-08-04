@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import FormInput from "../components/FormInput";
+import { Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
   const { login } = useAuth();
@@ -9,6 +10,7 @@ const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [serverError, setServerError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -45,11 +47,21 @@ const Login = () => {
         />
         <FormInput
           label="Password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           name="password"
           value={form.password}
           onChange={handleChange}
           required
+          rightElement={
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-light"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          }
         />
 
         <button
