@@ -59,8 +59,46 @@ export default function CommentSection({ postId }) {
     };
 
     socket.on(`post:${postId}:comment`, handleRealtimeComment);
-    return () => socket.off(`post:${postId}:comment`, handleRealtimeComment);
+    socket.on(`post:${postId}:comment-like`, handleRealtimeCommentLike);
+
+    return () => {
+      socket.off(`post:${postId}:comment`, handleRealtimeComment);
+      socket.off(`post:${postId}:comment-like`, handleRealtimeCommentLike);
+    };
   }, [socket, postId, user]);
+
+  const updateCommentLikeState = (item, data) => {
+    if (item.id !== data.commentId) return item;
+
+    return {
+      ...item,
+      likesCount: data.likesCount,
+      isLikedByViewer: data.isLikedByViewer,
+    };
+  };
+
+  const handleRealtimeCommentLike = (data) => {
+    if (!data?.commentId) return;
+
+    setComments((prev) => prev.map((comment) => updateCommentLikeState(comment, data)));
+
+    setReplyThreads((prev) => {
+      let changed = false;
+      const next = {};
+
+      for (const [parentId, thread] of Object.entries(prev)) {
+        const replies = (thread.replies || []).map((reply) => {
+          const updated = updateCommentLikeState(reply, data);
+          if (updated !== reply) changed = true;
+          return updated;
+        });
+
+        next[parentId] = { ...thread, replies };
+      }
+
+      return changed ? next : prev;
+    });
+  };
 
   const fetchComments = async () => {
     try {

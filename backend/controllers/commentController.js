@@ -304,6 +304,20 @@ const likeComment = async (req, res, next) => {
     comment.likes.push(req.user._id);
     await comment.save();
 
+    try {
+      const io = getIO();
+      const postId = comment.post?._id ? comment.post._id.toString() : comment.post.toString();
+
+      io.emit(`post:${postId}:comment-like`, {
+        action: 'like',
+        commentId: comment._id.toString(),
+        likesCount: comment.likes.length,
+        isLikedByViewer: true,
+      });
+    } catch (err) {
+      console.error('Socket emit error:', err.message);
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Comment liked',
@@ -329,6 +343,20 @@ const unlikeComment = async (req, res, next) => {
 
     comment.likes = comment.likes.filter((likeId) => !likeId.equals(req.user._id));
     await comment.save();
+
+    try {
+      const io = getIO();
+      const postId = comment.post?._id ? comment.post._id.toString() : comment.post.toString();
+
+      io.emit(`post:${postId}:comment-like`, {
+        action: 'unlike',
+        commentId: comment._id.toString(),
+        likesCount: comment.likes.length,
+        isLikedByViewer: false,
+      });
+    } catch (err) {
+      console.error('Socket emit error:', err.message);
+    }
 
     return res.status(200).json({
       success: true,
