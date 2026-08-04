@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+require('dotenv').config();
+
 const authenticateUser = async (req, res, next) => {
   try {
     let token = req.cookies?.[process.env.COOKIE_NAME || 'ig_token'];
