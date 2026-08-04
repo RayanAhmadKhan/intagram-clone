@@ -25,18 +25,25 @@ export const AuthProvider = ({ children }) => {
   const register = async (payload) => {
     const { data } = await api.post("/auth/register", payload);
     setUser(data.data.user);
+    if (data?.data?.token) {
+      localStorage.setItem("ig_token", data.data.token);
+    }
     return data;
   };
 
   const login = async (payload) => {
     const { data } = await api.post("/auth/login", payload);
     setUser(data.data.user);
+    if (data?.data?.token) {
+      localStorage.setItem("ig_token", data.data.token);
+    }
     return data;
   };
 
   const logout = async () => {
     await api.post("/auth/logout");
     setUser(null);
+    localStorage.removeItem("ig_token");
   };
 
   const refreshUser = async () => {

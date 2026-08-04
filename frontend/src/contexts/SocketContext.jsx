@@ -16,6 +16,7 @@ const SOCKET_URL = configuredSocketUrl
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const { user } = useAuth() || {};
+  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('ig_token') : null;
 
   useEffect(() => {
     if (!user) {
@@ -28,6 +29,7 @@ export const SocketProvider = ({ children }) => {
 
     const newSocket = io(SOCKET_URL, {
       withCredentials: true,
+      auth: storedToken ? { token: storedToken } : undefined,
       reconnection: true,
       reconnectionAttempts: 5,
     });
@@ -51,7 +53,7 @@ export const SocketProvider = ({ children }) => {
     return () => {
       newSocket.disconnect();
     };
-  }, [user]);
+  }, [user, storedToken]);
 
   return <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>;
 };
