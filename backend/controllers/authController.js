@@ -2,6 +2,8 @@ const bcrypt = require('bcrypt');
 const User = require('../models/User');
 const { generateToken, cookieOptions } = require('../utils/generateToken');
 
+require('dotenv').config();
+
 const register = async (req, res, next) => {
   try {
     const { username, email, password, fullName } = req.body;
